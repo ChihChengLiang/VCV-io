@@ -323,20 +323,20 @@ private theorem highBitsCoeff_lt_useHintModulus_of_isApproved {alpha m : ℕ}
   split_ifs with h hs hs
   · exact ctx.hm
   · change r.val / alpha < m
-    have hdiv_le : r.val / alpha ≤ m := by
-      rw [← Nat.mul_div_cancel_left m ctx.hα]
+    refine lt_of_le_of_ne ?_ ?_
+    · rw [← Nat.mul_div_cancel_left m ctx.hα]
       exact Nat.div_le_div_right hle
-    exact lt_of_le_of_ne hdiv_le fun hm => hs (by rw [hm, ctx.hqm1])
+    · by_contra hm; apply hs; rw [hm, ctx.hqm1]
   · exact ctx.hm
   · change r.val / alpha + 1 < m
-    have hlt : ZMod.val r / alpha < m := by
+    refine lt_of_le_of_ne ?_ ?_
+    · refine Nat.add_one_le_of_lt ?_
       apply (Nat.mul_lt_mul_left ctx.hα).mp
       calc alpha * (r.val / alpha)
           < alpha * (r.val / alpha) + t := lt_add_of_pos_right _ (show 0 < t by omega)
         _ = r.val                       := Nat.div_add_mod r.val alpha
         _ ≤ alpha * m                   := hle
-    have hdiv_le := Nat.add_one_le_of_lt hlt
-    exact lt_of_le_of_ne hdiv_le fun hm => hs (by rw [hm, ctx.hqm1])
+    · by_contra hm; apply hs; rw [hm, ctx.hqm1]
 
 private theorem alphaMul_pred_m_eq_coeff {alpha m : ℕ} (ctx : BalancedDecomp alpha m) :
     (alpha: Coeff) * ((m - 1 : ℕ) : Coeff) = (-1 : Coeff) - (alpha : Coeff) := by
@@ -537,18 +537,15 @@ private theorem highBitsCoeff_add_eq_of_small_of_isApproved
     exact lt_or_gt_of_ne hneq.symm
   cases hlt_or_gt with
   | inl hr1ltu =>
-      have hult : u < m := by
-        have := highBitsCoeff_lt_useHintModulus_of_isApproved ctx (r + s)
-        rwa [highBitsCoeff, hdecomp_rs] at this
-      exact contra r1 u v w hr1ltu hult hdiffbound heq.symm
+    refine contra r1 u v w hr1ltu ?_ hdiffbound heq.symm
+    · have := highBitsCoeff_lt_useHintModulus_of_isApproved ctx (r + s)
+      rwa [highBitsCoeff, hdecomp_rs] at this
   | inr hultr1 =>
-      have hdiffbound2: (w - v).natAbs ≤ alpha - 1 := by
-        rw [show w - v = -(v - w) from by ring, Int.natAbs_neg]
-        exact hdiffbound
-      have hr1lt : r1 < m := by
-        have := highBitsCoeff_lt_useHintModulus_of_isApproved ctx r
-        rwa [highBitsCoeff, hdecomp_r] at this
-      exact contra u r1 w v hultr1 hr1lt hdiffbound2 heq
+    refine contra u r1 w v hultr1 ?_ ?_ heq
+    · have := highBitsCoeff_lt_useHintModulus_of_isApproved ctx r
+      rwa [highBitsCoeff, hdecomp_r] at this
+    · rw [show w - v = -(v - w) from by ring, Int.natAbs_neg]
+      exact hdiffbound
 
 private theorem useHintCoeff_shift_sub_bound_of_isApproved
     {alpha m : ℕ} (ctx : BalancedDecomp alpha m) (h : Bool) (r : Coeff) :
