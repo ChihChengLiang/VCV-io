@@ -619,19 +619,21 @@ private theorem highBitsCoeff_eq_of_pos_overflow {alpha m : ℕ} (ctx : Balanced
     (hv_hi : v ≤ (alpha : ℤ))
     (hsum : alpha * (r1 : Coeff) + v = s) :
     highBitsCoeff s (alpha/2) = (r1 + 1) % m := by
-  have : v - (alpha :ℤ ) ≤ 0 := by omega
   have h2α := ctx.h2α
+  suffices h: ∃ (r1': ℕ) (r0': ℤ), (r1 + 1) % m = r1' ∧ r1' < m ∧ r0'.natAbs ≤ alpha / 2 ∧
+      (r0' < 0 → r1' = 0 ∨ r0'.natAbs < alpha / 2) ∧ alpha * r1' + r0' = s by
+    obtain ⟨r1', r0', hr1eq, hr1', hr0', hr0_neg', hdecomp⟩ := h
+    rw[hr1eq]
+    exact highBitsCoeff_eq_of_repr ctx r1' r0' hr1' hr0' hr0_neg' hdecomp
   by_cases hwrap : r1 + 1 < m
-  · rw [Nat.mod_eq_of_lt hwrap]
-    exact highBitsCoeff_eq_of_repr ctx (r1+1) (v - alpha) hwrap (by omega) (by omega)
-      (by rw [← hsum, Nat.cast_add, Nat.cast_one]; push_cast; ring)
-  · push Not at hwrap
-    rw [show r1 + 1 = m  by omega, Nat.mod_self]
-    exact highBitsCoeff_eq_of_repr ctx 0 (v - alpha - 1) ctx.hm (by omega) (by omega)
-      (by
-        rw [Nat.cast_zero, mul_zero, zero_add, ← hsum,
-        show r1 = m - 1 from by omega, alpha_mul_pred_m_eq ctx]
-        push_cast; ring)
+  · use (r1 + 1), (v - alpha)
+    refine ⟨Nat.mod_eq_of_lt hwrap, hwrap, by omega , by omega, ?_⟩
+    rw [← hsum, Nat.cast_add, Nat.cast_one]; push_cast; ring
+  · use 0, v - alpha - 1
+    refine ⟨by rw [show r1 + 1 = m by omega, Nat.mod_self], ctx.hm, by omega, by omega, ?_⟩
+    rw [Nat.cast_zero, mul_zero, zero_add, ← hsum,
+      show r1 = m - 1 from by omega, alpha_mul_pred_m_eq ctx]
+    push_cast; ring
 
 private theorem highBitsCoeff_eq_of_neg_overflow {alpha m : ℕ} (ctx : BalancedDecomp alpha m)
     {s : Coeff} (r1 : ℕ) (v : ℤ)
