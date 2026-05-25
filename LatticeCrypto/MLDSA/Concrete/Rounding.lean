@@ -618,10 +618,9 @@ private theorem highBitsCoeff_eq_of_pos_overflow {alpha m : ℕ} (ctx : Balanced
   suffices h: ∃ (r1': ℕ) (r0': ℤ), (r1 + 1) % m = r1' ∧ r1' < m ∧ r0'.natAbs ≤ alpha / 2 ∧
       (r0' < 0 → r1' = 0 ∨ r0'.natAbs < alpha / 2) ∧ alpha * r1' + r0' = s by
     obtain ⟨r1', r0', hr1eq, hr1', hr0', hr0_neg', hdecomp⟩ := h
-    rw[hr1eq]
-    exact highBitsCoeff_eq_of_repr ctx r1' r0' hr1' hr0' hr0_neg' hdecomp
+    rw[hr1eq]; exact highBitsCoeff_eq_of_repr ctx r1' r0' hr1' hr0' hr0_neg' hdecomp
   by_cases hwrap : r1 + 1 < m
-  · use (r1 + 1), (v - alpha)
+  · use r1 + 1, v - alpha
     refine ⟨Nat.mod_eq_of_lt hwrap, hwrap, by omega , by omega, ?_⟩
     rw [← hsum, Nat.cast_add, Nat.cast_one]; push_cast; ring
   · use 0, v - alpha - 1
@@ -638,16 +637,20 @@ private theorem highBitsCoeff_eq_of_neg_overflow {alpha m : ℕ} (ctx : Balanced
     (hsum : alpha * (r1 : Coeff) + v = s) :
     highBitsCoeff s (alpha / 2) = (r1 + m - 1) % m := by
   have h2α := ctx.h2α
+  suffices h: ∃ (r1': ℕ) (r0': ℤ), (r1 + m - 1) % m = r1' ∧ r1' < m ∧ r0'.natAbs ≤ alpha / 2 ∧
+      (r0' < 0 → r1' = 0 ∨ r0'.natAbs < alpha / 2) ∧ alpha * r1' + r0' = s by
+    obtain ⟨r1', r0', hr1eq, hr1', hr0', hr0_neg', hdecomp⟩ := h
+    rw[hr1eq]; exact highBitsCoeff_eq_of_repr ctx r1' r0' hr1' hr0' hr0_neg' hdecomp
   rcases Nat.eq_zero_or_pos r1 with hr1z | hr1pos
-  · rw [hr1z, zero_add, Nat.mod_eq_of_lt (Nat.sub_lt ctx.hm (by decide))]
-    exact highBitsCoeff_eq_of_repr ctx
-      (m - 1) (v + alpha + 1) (Nat.pred_lt ctx.hm.ne') (by omega) (by omega)
-      (by rw [alpha_mul_pred_m_eq ctx, ← hsum, hr1z]; push_cast; ring)
-  · rw [show r1 + m - 1 = (r1 - 1) + m from by omega,
+  · use m - 1, v + alpha + 1
+    refine ⟨?_, Nat.pred_lt ctx.hm.ne', by omega, by omega, ?_⟩
+    · rw [hr1z, zero_add, Nat.mod_eq_of_lt (Nat.sub_lt ctx.hm (by decide))]
+    · rw [alpha_mul_pred_m_eq ctx, ← hsum, hr1z]; push_cast; ring
+  · use r1 - 1, v + alpha
+    refine ⟨?_, show r1 - 1 < m by omega, by omega, by omega, ?_⟩
+    · rw [show r1 + m - 1 = (r1 - 1) + m from by omega,
         Nat.add_mod_right, Nat.mod_eq_of_lt (by omega)]
-    exact highBitsCoeff_eq_of_repr ctx (r1 - 1) (v + alpha)
-      (show r1 - 1 < m by omega) (by omega) (by omega)
-      (by rw [Nat.cast_sub hr1pos, ← hsum]; push_cast; ring)
+    · rw [Nat.cast_sub hr1pos, ← hsum]; push_cast; ring
 
 private theorem useHintCoeff_makeHintCoeff_eq_of_small
     {alpha m : ℕ} (ctx : BalancedDecomp alpha m) (z r : Coeff)
