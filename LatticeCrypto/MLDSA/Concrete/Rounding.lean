@@ -496,6 +496,19 @@ private theorem highBitsCoeff_add_eq_of_centeredRepr_lt
   let z : ℤ := centeredRepr s
   let v : ℤ := r0 + z
   by_contra hneq; push Not at hneq
+  suffices h : ∃ (lo hi : ℕ) (e1 e2 : ℤ), lo < hi ∧ hi < m ∧ (e1 - e2).natAbs ≤ alpha - 1 ∧
+      alpha * (lo : Coeff) + e1 = alpha * (hi : Coeff) + e2 by
+    obtain ⟨ lo, hi, e1, e2, hlt, hhi, hbound, heq ⟩ := h
+    let delta := (hi : ℤ) - (lo : ℤ)
+    have hbig := alpha_le_natAbs_centeredRepr_mul (z := delta) ctx (by omega) (by omega)
+    have hsmallq : 2 * (alpha - 1) < modulus := by have := ctx.hsmall; omega
+    have hdeltaeq : alpha * (delta : Coeff) = e1 - e2 := by
+      zify[delta, mul_sub]
+      apply sub_eq_sub_iff_add_eq_add.mpr
+      ring_nf
+      exact heq.symm
+    rw [hdeltaeq, ← Int.cast_sub, centeredRepr_intCast_eq_of_natAbs_le _ hbound hsmallq] at hbig
+    exact absurd (hbig.trans hbound) (Nat.not_le.mpr (Nat.sub_lt ctx.hα one_pos))
   have hdiffbound : (v - w).natAbs ≤ alpha - 1 := by
     have hwbound := lowBitsCoeff_bound (r := r + s) ctx.hγ hdecomp_rs
     have hvbound : v.natAbs ≤ alpha / 2 - 1 := by
@@ -509,35 +522,15 @@ private theorem highBitsCoeff_add_eq_of_centeredRepr_lt
     have hcandidate : (alpha * (r1 : Coeff)) + v = r + s := by
       rw [centeredRepr_intCast s, Int.cast_add, ← add_assoc, decomposeCoeff_eq r ctx.h2α hdecomp_r]
     exact (decomposeCoeff_eq (r + s) ctx.h2α hdecomp_rs).trans hcandidate.symm
-  have contra : ∀ (lo hi : ℕ) (e1 e2 : ℤ),
-      lo < hi → hi < m →
-      (e1 - e2).natAbs ≤ alpha - 1 →
-      alpha * (lo : Coeff) + e1 = alpha * (hi : Coeff) + e2 →
-      False := fun lo hi e1 e2 hlt hhi hbound heq' => by
-    let delta := (hi : ℤ) - (lo : ℤ)
-    have hbig := alpha_le_natAbs_centeredRepr_mul (z:= delta) ctx (by omega) (by omega)
-    have hsmallq : 2 * (alpha - 1) < modulus := by have := ctx.hsmall; omega
-    have hdeltaeq : alpha * (delta : Coeff) = e1 - e2 := by
-      zify[delta, mul_sub]
-      apply sub_eq_sub_iff_add_eq_add.mpr
-      ring_nf
-      exact heq'.symm
-    rw [hdeltaeq, ← Int.cast_sub, centeredRepr_intCast_eq_of_natAbs_le _ hbound hsmallq] at hbig
-    exact absurd (hbig.trans hbound) (Nat.not_le.mpr (Nat.sub_lt ctx.hα one_pos))
-  have hlt_or_gt : r1 < u ∨ u < r1 := by
-    simp only [highBitsCoeff, hdecomp_rs, hdecomp_r] at hneq
-    exact lt_or_gt_of_ne hneq.symm
-  cases hlt_or_gt with
+  simp only [highBitsCoeff, hdecomp_rs, hdecomp_r] at hneq
+  cases show r1 < u ∨ u < r1 from lt_or_gt_of_ne hneq.symm with
   | inl hr1ltu =>
-    refine contra r1 u v w hr1ltu ?_ hdiffbound heq.symm
-    · have := highBitsCoeff_lt_m ctx (r + s)
-      rwa [highBitsCoeff, hdecomp_rs] at this
+    use r1, u, v, w; refine ⟨ hr1ltu, ?_, hdiffbound, heq.symm ⟩
+    · simpa [highBitsCoeff, hdecomp_rs] using highBitsCoeff_lt_m ctx (r + s)
   | inr hultr1 =>
-    refine contra u r1 w v hultr1 ?_ ?_ heq
-    · have := highBitsCoeff_lt_m ctx r
-      rwa [highBitsCoeff, hdecomp_r] at this
-    · rw [show w - v = -(v - w) from by ring, Int.natAbs_neg]
-      exact hdiffbound
+    use u, r1, w, v; refine ⟨ hultr1, ?_, ?_, heq ⟩
+    · simpa [highBitsCoeff, hdecomp_r] using highBitsCoeff_lt_m ctx r
+    · rw [show w - v = -(v - w) from by ring, Int.natAbs_neg]; exact hdiffbound
 
 private theorem useHintCoeff_shift_sub_le
     {alpha m : ℕ} (ctx : BalancedDecomp alpha m) (h : Bool) (r : Coeff) :
