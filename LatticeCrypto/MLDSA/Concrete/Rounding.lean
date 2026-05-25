@@ -563,32 +563,29 @@ private theorem useHintCoeff_shift_sub_le
         · use r0 - alpha; constructor
           · simp only [useHintCoeff, if_true, hdec, hr0pos, ctx.h2α, ctx.hmdef]
             rw [Nat.mod_eq_of_lt hwrap, ←hdecomp]
-            push_cast
-            ring_nf
+            push_cast; ring_nf
           · omega
         · use r0 - alpha - 1; constructor
           · rw [show useHintCoeff true r (alpha / 2) = 0 by
                 simp [useHintCoeff, hdec, hr0pos, ctx.h2α, ctx.hmdef, show r1 + 1 = m by omega]]
-            zify [← hdecomp, show r1 = m - 1 by omega, alpha_mul_pred_m_eq ctx]
+            simp [← hdecomp, show r1 = m - 1 by omega, alpha_mul_pred_m_eq ctx]
             ring_nf
           · omega
       · by_cases hr1zero : r1 = 0
         · use r0 + alpha + 1; constructor
-          · have huse : useHintCoeff true r (alpha / 2) = m - 1 := by
-              have hpred : (m - 1) % m = m - 1 := Nat.mod_eq_of_lt (Nat.pred_lt ctx.hm.ne')
-              simp [useHintCoeff, hdec, hr0pos, hr1zero, ctx.h2α, ctx.hmdef, hpred]
-            rw [huse, alpha_mul_pred_m_eq ctx, ← hdecomp, hr1zero]
-            simp [sub_sub_eq_add_sub]
+          · rw [show useHintCoeff true r (alpha / 2) = m - 1 by
+                  simp [useHintCoeff, hdec, hr0pos, hr1zero, ctx.h2α, ctx.hmdef],
+              alpha_mul_pred_m_eq ctx, ← hdecomp, hr1zero]
+            push_cast; ring_nf
           · omega
         · use r0 + alpha; constructor
           · have huse : useHintCoeff true r (alpha / 2) = r1 - 1 := by
-              have hmod' : (r1 + m - 1) % m = r1 - 1 := by
-                rw [show r1 + m - 1 = r1 - 1 + m by omega, Nat.add_mod_right,
+              simp only [useHintCoeff, hdec, hr0pos, ctx.h2α, ctx.hmdef]
+              change (r1 + m - 1) % m = r1 - 1
+              rw [show r1 + m - 1 = r1 - 1 + m by omega, Nat.add_mod_right,
                     Nat.mod_eq_of_lt (by omega)]
-              simp [useHintCoeff, hdec, hr0pos, ctx.h2α, ctx.hmdef, hmod']
-            rw [huse, ← hdecomp, Nat.cast_sub (Nat.pos_of_ne_zero hr1zero),
-              Nat.succ_eq_add_one, zero_add, Nat.cast_one, Int.cast_add, Int.cast_natCast]
-            ring_nf
+            rw [huse, ← hdecomp, Nat.cast_sub (Nat.pos_of_ne_zero hr1zero)]
+            push_cast; ring_nf
           · omega
 
 private theorem decomposeCoeff_add_eq_of_natAbs_le
