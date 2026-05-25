@@ -504,15 +504,11 @@ private theorem highBitsCoeff_add_eq_of_centeredRepr_lt
     have hwbound := lowBitsCoeff_bound (r := r + s) ctx.hγ hdecomp_rs
     have hvbound : v.natAbs ≤ alpha / 2 - 1 := by
       rw [lowBitsCoeff, hdecomp_r] at hr
-      have h1 : r0.natAbs ≤ alpha / 2 - b - 1 := Nat.le_pred_of_lt hr
-      have h2 := Int.natAbs_add_le r0 z
+      have := Int.natAbs_add_le r0 z
       omega
-    have : alpha / 2 - 1 + alpha / 2 = alpha - 1 := by
-      nth_rewrite 3 [← ctx.h2α]
-      rw [two_mul, add_comm, Nat.add_sub_assoc]
-      have := ctx.h2leα
-      omega
-    exact (Int.natAbs_sub_le v w).trans (Nat.add_le_add hvbound hwbound |>.trans_eq this)
+    have := Int.natAbs_sub_le v w
+    have := ctx.h2α
+    omega
   have heq : alpha * (u : Coeff) + w = alpha * (r1 : Coeff) + v := by
     have hcandidate : (alpha * (r1 : Coeff)) + v = r + s := by
       rw [centeredRepr_intCast s, Int.cast_add, ← add_assoc, decomposeCoeff_eq r ctx.h2α hdecomp_r]
