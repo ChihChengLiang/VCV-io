@@ -579,20 +579,6 @@ private theorem useHintCoeff_shift_sub_le
           push_cast; ring_nf
         · omega
 
-private theorem decomposeCoeff_add_eq_of_natAbs_le
-    {alpha m : ℕ} (ctx : BalancedDecomp alpha m) (r : Coeff) (z0 r0 : ℤ) (r1 : ℕ)
-    (hdec : decomposeCoeff r (alpha / 2) = (r1, r0))
-    (hvlow : -(alpha / 2 : ℤ) < r0 + z0)
-    (hvup : r0 + z0 ≤ alpha / 2) :
-    decomposeCoeff (r + z0) (alpha / 2) =
-      (highBitsCoeff r (alpha / 2), lowBitsCoeff r (alpha / 2) + z0) := by
-  simp only [highBitsCoeff, hdec, lowBitsCoeff]
-  refine decomposeCoeff_unique ctx r1 (r0 + z0) ?_ ?_ ?_ ?_
-  · simpa [highBitsCoeff, hdec] using highBitsCoeff_lt_m ctx r
-  · exact natAbs_le_of_neg_le_and_le (le_of_lt hvlow) hvup
-  · intros; right; omega
-  · push_cast; rw [← add_assoc, decomposeCoeff_eq r ctx.h2α hdec]
-
 private theorem highBitsCoeff_eq_of_pos_overflow {alpha m : ℕ} (ctx : BalancedDecomp alpha m)
     {s : Coeff} (r1 : ℕ) (v : ℤ)
     (hr1 : r1 < m)
@@ -667,7 +653,13 @@ private theorem useHintCoeff_makeHintCoeff_eq_of_small
       simp only [makeHintCoeff, ne_eq, hneq, not_false_eq_true, decide_true, huse]
       exact (highBitsCoeff_eq_of_pos_overflow ctx r1 v hr1lt (by omega) (by omega) hsum).symm
     · by_contra; apply hneq.symm
-      rw [highBitsCoeff, hzcast, decomposeCoeff_add_eq_of_natAbs_le ctx r z0 r0 r1 hdec hlo hhi]
+      suffices h : decomposeCoeff (r + ↑z0) (alpha / 2) = (r1, r0 + z0) by
+        simp [highBitsCoeff, hdec, hzcast, h]
+      refine decomposeCoeff_unique (r := r + z0) ctx r1 (r0 + z0) ?_ ?_ ?_ ?_
+      · simpa [highBitsCoeff, hdec] using highBitsCoeff_lt_m ctx r
+      · exact natAbs_le_of_neg_le_and_le (le_of_lt hlo) hhi
+      · intros; right; omega
+      · push_cast; rw [← add_assoc, decomposeCoeff_eq r ctx.h2α hdec]
     · have huse : useHintCoeff true r (alpha / 2) = (r1 + m - 1) % m := by
         simp [useHintCoeff, hdec, show ¬0 < r0 by omega, ctx.h2α, ctx.hmdef]
       have hv_hi : v < -(alpha / 2 : ℤ) ∨ (v = -(alpha / 2 : ℤ) ∧ 0 < r1) := by
