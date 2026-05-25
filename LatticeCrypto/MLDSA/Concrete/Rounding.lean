@@ -546,9 +546,7 @@ private theorem useHintCoeff_shift_sub_le
         alpha + 1 := by
   rcases hdec : decomposeCoeff r (alpha / 2) with ⟨r1, r0⟩
   have hdecomp : alpha * (r1 : Coeff) + r0 = r := decomposeCoeff_eq r ctx.h2α hdec
-  have hr1lt : r1 < m := by
-    have := highBitsCoeff_lt_m ctx r
-    rwa [highBitsCoeff, hdec] at this
+  have hr1lt : r1 < m := by simpa [highBitsCoeff, hdec] using highBitsCoeff_lt_m ctx r
   have hr0bound := lowBitsCoeff_bound r ctx.hγ hdec
   suffices h : ∃ v : ℤ, r - (alpha : Coeff) * (useHintCoeff _ r (alpha / 2) : Coeff) = v
       ∧ v.natAbs ≤ alpha + 1 by
@@ -556,37 +554,37 @@ private theorem useHintCoeff_shift_sub_le
     rw [hveq, centeredRepr_intCast_eq_of_natAbs_le v hvb ctx.hsmall]; exact hvb
   cases h with
   | false =>
-      use r0; exact ⟨by simp [useHintCoeff, hdec, sub_eq_iff_eq_add'.2 hdecomp.symm], by omega⟩
+    use r0; exact ⟨by simp [useHintCoeff, hdec, sub_eq_iff_eq_add'.2 hdecomp.symm], by omega⟩
   | true =>
-      by_cases hr0pos : 0 < r0
-      · by_cases hwrap : r1 + 1 < m
-        · use r0 - alpha; constructor
-          · simp only [useHintCoeff, if_true, hdec, hr0pos, ctx.h2α, ctx.hmdef]
-            rw [Nat.mod_eq_of_lt hwrap, ←hdecomp]
-            push_cast; ring_nf
-          · omega
-        · use r0 - alpha - 1; constructor
-          · rw [show useHintCoeff true r (alpha / 2) = 0 by
-                simp [useHintCoeff, hdec, hr0pos, ctx.h2α, ctx.hmdef, show r1 + 1 = m by omega]]
-            simp [← hdecomp, show r1 = m - 1 by omega, alpha_mul_pred_m_eq ctx]
-            ring_nf
-          · omega
-      · by_cases hr1zero : r1 = 0
-        · use r0 + alpha + 1; constructor
-          · rw [show useHintCoeff true r (alpha / 2) = m - 1 by
-                  simp [useHintCoeff, hdec, hr0pos, hr1zero, ctx.h2α, ctx.hmdef],
-              alpha_mul_pred_m_eq ctx, ← hdecomp, hr1zero]
-            push_cast; ring_nf
-          · omega
-        · use r0 + alpha; constructor
-          · have huse : useHintCoeff true r (alpha / 2) = r1 - 1 := by
-              simp only [useHintCoeff, hdec, hr0pos, ctx.h2α, ctx.hmdef]
-              change (r1 + m - 1) % m = r1 - 1
-              rw [show r1 + m - 1 = r1 - 1 + m by omega, Nat.add_mod_right,
-                    Nat.mod_eq_of_lt (by omega)]
-            rw [huse, ← hdecomp, Nat.cast_sub (Nat.pos_of_ne_zero hr1zero)]
-            push_cast; ring_nf
-          · omega
+    by_cases hr0pos : 0 < r0
+    · by_cases hwrap : r1 + 1 < m
+      · use r0 - alpha; constructor
+        · simp only [useHintCoeff, if_true, hdec, hr0pos, ctx.h2α, ctx.hmdef]
+          rw [Nat.mod_eq_of_lt hwrap, ←hdecomp]
+          push_cast; ring_nf
+        · omega
+      · use r0 - alpha - 1; constructor
+        · rw [show useHintCoeff true r (alpha / 2) = 0 by
+              simp [useHintCoeff, hdec, hr0pos, ctx.h2α, ctx.hmdef, show r1 + 1 = m by omega]]
+          simp [← hdecomp, show r1 = m - 1 by omega, alpha_mul_pred_m_eq ctx]
+          ring_nf
+        · omega
+    · by_cases hr1zero : r1 = 0
+      · use r0 + alpha + 1; constructor
+        · rw [show useHintCoeff true r (alpha / 2) = m - 1 by
+                simp [useHintCoeff, hdec, hr0pos, hr1zero, ctx.h2α, ctx.hmdef],
+            alpha_mul_pred_m_eq ctx, ← hdecomp, hr1zero]
+          push_cast; ring_nf
+        · omega
+      · use r0 + alpha; constructor
+        · have huse : useHintCoeff true r (alpha / 2) = r1 - 1 := by
+            simp only [useHintCoeff, hdec, hr0pos, ctx.h2α, ctx.hmdef]
+            change (r1 + m - 1) % m = r1 - 1
+            rw [show r1 + m - 1 = r1 - 1 + m by omega, Nat.add_mod_right,
+                  Nat.mod_eq_of_lt (by omega)]
+          rw [huse, ← hdecomp, Nat.cast_sub (Nat.pos_of_ne_zero hr1zero)]
+          push_cast; ring_nf
+        · omega
 
 private theorem decomposeCoeff_add_eq_of_natAbs_le
     {alpha m : ℕ} (ctx : BalancedDecomp alpha m) (r : Coeff) (z0 r0 : ℤ) (r1 : ℕ)
