@@ -539,7 +539,7 @@ private theorem highBitsCoeff_add_eq_of_centeredRepr_lt
     · rw [show w - v = -(v - w) from by ring, Int.natAbs_neg]
       exact hdiffbound
 
-private theorem useHintCoeff_shift_sub_bound_of_isApproved
+private theorem useHintCoeff_shift_sub_le
     {alpha m : ℕ} (ctx : BalancedDecomp alpha m) (h : Bool) (r : Coeff) :
     (centeredRepr
       (r - (alpha : Coeff) * (useHintCoeff h r (alpha / 2) : Coeff))).natAbs ≤
@@ -749,8 +749,7 @@ theorem concreteRounding_useHint_bound_of_isApproved (p : Params)
   refine cInfNorm_le_iff.mpr fun j => ?_
   simp only [Rq.get_sub, highBitsShift, Nat.cast_mul, Nat.cast_ofNat, useHint, Vector.map_ofFn,
       Vector.get_ofFn, Function.comp_apply]
-  simpa using useHintCoeff_shift_sub_bound_of_isApproved
-    (BalancedDecomp.ofApproved hp) (h.get j) (r.get j)
+  simpa using useHintCoeff_shift_sub_le (BalancedDecomp.ofApproved hp) (h.get j) (r.get j)
 
 theorem concreteRounding_hide_low_of_isApproved (p : Params)
     (hp : p.isApproved) (r s : Rq) (b : ℕ) :
