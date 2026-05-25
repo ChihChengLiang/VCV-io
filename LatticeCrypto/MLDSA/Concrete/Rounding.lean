@@ -183,8 +183,8 @@ private def BalancedDecomp.ofApproved {p : Params} (hp : p.isApproved) :
   hsmall := by rcases hp with rfl | rfl | rfl <;> decide
   hunit  := (ZMod.isUnit_iff_coprime _ _).mpr (by rcases hp with rfl | rfl | rfl <;> decide)
 
-private theorem coeff_cast_div_add_mod (r : Coeff) (s : ℕ) :
-    s * ((r.val / s):Coeff) + ((r.val % s): Coeff) = r := by
+private theorem natCast_div_add_mod (r : Coeff) (s : ℕ) :
+    s * (r.val / s : Coeff) + (r.val % s : Coeff) = r := by
   rw [← Nat.cast_mul, ← Nat.cast_add]
   nth_rewrite 3 [← ZMod.natCast_zmod_val r]
   congr 1; exact Nat.div_add_mod r.val s
@@ -193,7 +193,7 @@ private theorem power2RoundCoeff_eq (r : Coeff) {r1 : ℕ} {r0 : ℤ}
   (hdecomp : power2RoundCoeff r = (r1, r0)) :
     ((power2Scale : Coeff) * (r1 : Coeff)) + r0 = r := by
   simp only [power2RoundCoeff] at hdecomp
-  have hdam := coeff_cast_div_add_mod r power2Scale
+  have hdam := natCast_div_add_mod r power2Scale
   split_ifs at hdecomp <;> rcases hdecomp with ⟨rfl, rfl⟩ <;> push_cast
   · exact hdam
   · ring_nf; exact hdam
@@ -215,7 +215,7 @@ private theorem decomposeCoeff_eq
   simp only [decomposeCoeff, h2α] at hdecomp
   set t : ℕ := r.val % alpha
   set q := r.val / alpha
-  have hdam : (alpha: Coeff) * q  + t = r := coeff_cast_div_add_mod r alpha
+  have hdam : (alpha: Coeff) * q  + t = r := natCast_div_add_mod r alpha
   have hwrap : ∀ (k : ℕ), alpha * k = modulus - 1 → (alpha : Coeff) * k = -1 := fun k hk => by
     rw [← Nat.cast_mul, hk, Nat.cast_sub (by norm_num [modulus]),
       ZMod.natCast_self, zero_sub, Nat.cast_one]
@@ -237,9 +237,9 @@ private theorem lowBitsCoeff_bound (r : Coeff) {r1 gamma2 : ℕ} {r0 : ℤ} (hγ
   have htlt : t < alpha := Nat.mod_lt _ (by omega)
   split_ifs at hdec with h hs hs <;> simp_all <;> omega
 
-private theorem lowBits_centeredRepr (r : Coeff) {gamma2 : ℕ}
+private theorem centeredRepr_intCast_lowBitsCoeff (r : Coeff) {gamma2 : ℕ}
     (hγ : 0 < gamma2) (hq : 2 * gamma2 < modulus) :
-    centeredRepr ((lowBitsCoeff r gamma2):Coeff) = lowBitsCoeff r gamma2 := by
+    centeredRepr ((lowBitsCoeff r gamma2) : Coeff) = lowBitsCoeff r gamma2 := by
   have : (lowBitsCoeff r gamma2).natAbs ≤ gamma2 := by
     simp only [lowBitsCoeff]
     rcases hdec : decomposeCoeff r gamma2 with ⟨r1, r0⟩
@@ -300,20 +300,20 @@ theorem concreteRounding_lowBits_bound (p : Params)
   refine cInfNorm_le_of_coeff_le ?_
   intro i
   rw [lowBits_get]
-  rw [lowBits_centeredRepr (r := r.get i) hγ hq]
+  rw [centeredRepr_intCast_lowBitsCoeff (r := r.get i) hγ hq]
   simp only [lowBitsCoeff]
   rcases hdec : decomposeCoeff (r.get i) p.gamma2 with ⟨r1, r0⟩
   exact lowBitsCoeff_bound (r := r.get i) hγ hdec
 
-private theorem gamma2_pos_of_isApproved {p : Params} (hp : p.isApproved) :
+private theorem gamma2_pos {p : Params} (hp : p.isApproved) :
     0 < p.gamma2 := by
   rcases hp with rfl | rfl | rfl <;> decide
 
-private theorem gamma2_double_lt_modulus_of_isApproved {p : Params} (hp : p.isApproved) :
+private theorem two_gamma2_lt_modulus {p : Params} (hp : p.isApproved) :
     2 * p.gamma2 < modulus := by
   rcases hp with rfl | rfl | rfl <;> decide
 
-private theorem highBitsCoeff_lt_useHintModulus_of_isApproved {alpha m : ℕ}
+private theorem highBitsCoeff_lt_m {alpha m : ℕ}
     (ctx : BalancedDecomp alpha m) (r : Coeff) :
     highBitsCoeff r (alpha / 2) < m := by
   simp only [highBitsCoeff, decomposeCoeff, ctx.h2α]
@@ -338,13 +338,13 @@ private theorem highBitsCoeff_lt_useHintModulus_of_isApproved {alpha m : ℕ}
         _ ≤ alpha * m                   := hle
     · by_contra hm; apply hs; rw [hm, ctx.hqm1]
 
-private theorem alphaMul_pred_m_eq_coeff {alpha m : ℕ} (ctx : BalancedDecomp alpha m) :
+private theorem alpha_mul_pred_m_eq {alpha m : ℕ} (ctx : BalancedDecomp alpha m) :
     (alpha: Coeff) * ((m - 1 : ℕ) : Coeff) = (-1 : Coeff) - (alpha : Coeff) := by
   rw [Nat.cast_sub (show 1 ≤ m from ctx.hm), mul_sub, ← Nat.cast_mul,
     ctx.hqm1, Nat.cast_sub (show 1 ≤ modulus by decide), ZMod.natCast_self]
   ring_nf
 
-private theorem highBitsCoeff_of_euclid {r : Coeff} {alpha q t r1 : ℕ}
+private theorem highBitsCoeff_eq_of_euclid {r : Coeff} {alpha q t r1 : ℕ}
     (hα : 0 < alpha) (h2α : 2 * (alpha / 2) = alpha)
     (hval : r.val = alpha * q + t) (ht : t < alpha)
     (hside : (t ≤ alpha / 2 ∧ r1 = q) ∨ (alpha / 2 < t ∧ r1 = q + 1))
@@ -357,7 +357,7 @@ private theorem highBitsCoeff_of_euclid {r : Coeff} {alpha q t r1 : ℕ}
   simp only [highBitsCoeff, decomposeCoeff, h2α, hmod, hdiv]
   rcases hside with ⟨hle, rfl⟩ | ⟨hgt, rfl⟩ <;> simp_all; simp [not_le.mpr hgt]
 
-private theorem highBitsCoeff_of_repr {alpha m : ℕ} (ctx : BalancedDecomp alpha m)
+private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp alpha m)
     {r : Coeff} (r1 : ℕ) (r0 : ℤ)
     (hr1 : r1 < m)
     (hr0 : r0.natAbs ≤ alpha / 2)
@@ -387,7 +387,7 @@ private theorem highBitsCoeff_of_repr {alpha m : ℕ} (ctx : BalancedDecomp alph
       rw [hrcast, ZMod.val_natCast_of_lt hltq]
     have hwrap : alpha * r1 ≠ modulus - 1 := ne_of_lt
       (by rw [← ctx.hqm1]; exact Nat.mul_lt_mul_of_pos_left hr1 ctx.hα)
-    exact highBitsCoeff_of_euclid ctx.hα ctx.h2α hval
+    exact highBitsCoeff_eq_of_euclid ctx.hα ctx.h2α hval
       (by omega) (Or.inl ⟨(show n ≤ alpha/2 by omega), rfl⟩) hwrap
   · by_cases hr1z : r1 = 0
     · push Not at hr0nn
@@ -443,10 +443,10 @@ private theorem highBitsCoeff_of_repr {alpha m : ℕ} (ctx : BalancedDecomp alph
         ring_nf
       have hwrap : alpha * r1 ≠ modulus - 1 := ne_of_lt
         (by rw [← ctx.hqm1]; exact Nat.mul_lt_mul_of_pos_left hr1 ctx.hα)
-      exact highBitsCoeff_of_euclid ctx.hα ctx.h2α hval_repr (by omega)
+      exact highBitsCoeff_eq_of_euclid ctx.hα ctx.h2α hval_repr (by omega)
         (Or.inr ⟨(by omega), (Nat.sub_add_cancel hr1pos).symm⟩) hwrap
 
-private theorem centeredRepr_alpha_mul_natAbs_ge
+private theorem alpha_le_natAbs_centeredRepr_mul
     {alpha m : ℕ} (ctx : BalancedDecomp alpha m)
     {z : ℤ} (hz0 : 0 < z) (hzm : z.toNat < m) :
     alpha ≤ (centeredRepr ((alpha : Coeff) * (z : Coeff))).natAbs := by
@@ -479,18 +479,18 @@ private theorem decomposeCoeff_unique {alpha m : ℕ} (ctx : BalancedDecomp alph
     (hr0_neg : r0 < 0 → r1 = 0 ∨ r0.natAbs < alpha / 2)
     (hdecomp : (alpha : Coeff) * (r1 : Coeff) + r0 = r) :
     decomposeCoeff r (alpha / 2) = (r1, r0) := by
-  have h1 := highBitsCoeff_of_repr ctx r1 r0 hr1 hr0 hr0_neg hdecomp
+  have h1 := highBitsCoeff_eq_of_repr ctx r1 r0 hr1 hr0 hr0_neg hdecomp
   have hdecomp' : (alpha : Coeff) * r1 + lowBitsCoeff r (alpha / 2) = r := by
     have h := decomposeCoeff_eq r ctx.h2α (Prod.eta _)
     simp only [highBitsCoeff, lowBitsCoeff, ← h1] at h ⊢; exact h
   have hlow_eq := add_left_cancel (hdecomp'.trans hdecomp.symm)
   have h2 : lowBitsCoeff r (alpha / 2) = r0 := by
     have cr_eq := congrArg centeredRepr hlow_eq
-    rwa [lowBits_centeredRepr r ctx.hγ ctx.hγ2,
+    rwa [centeredRepr_intCast_lowBitsCoeff r ctx.hγ ctx.hγ2,
         centeredRepr_intCast_eq_of_natAbs_le r0 hr0 ctx.hγ2] at cr_eq
   exact Prod.ext h1 h2
 
-private theorem highBitsCoeff_add_eq_of_small_of_isApproved
+private theorem highBitsCoeff_add_eq_of_centeredRepr_lt
     {alpha m b : ℕ} (ctx : BalancedDecomp alpha m) (r s : Coeff)
     (hs : (centeredRepr s).natAbs ≤ b)
     (hr : (lowBitsCoeff r (alpha / 2)).natAbs < (alpha / 2) - b) :
@@ -523,7 +523,7 @@ private theorem highBitsCoeff_add_eq_of_small_of_isApproved
       alpha * (lo : Coeff) + e1 = alpha * (hi : Coeff) + e2 →
       False := fun lo hi e1 e2 hlt hhi hbound heq' => by
     let delta := (hi : ℤ) - (lo : ℤ)
-    have hbig := centeredRepr_alpha_mul_natAbs_ge (z:= delta) ctx (by omega) (by omega)
+    have hbig := alpha_le_natAbs_centeredRepr_mul (z:= delta) ctx (by omega) (by omega)
     have hsmallq : 2 * (alpha - 1) < modulus := by have := ctx.hsmall; omega
     have hdeltaeq : alpha * (delta : Coeff) = e1 - e2 := by
       zify[delta, mul_sub]
@@ -538,11 +538,11 @@ private theorem highBitsCoeff_add_eq_of_small_of_isApproved
   cases hlt_or_gt with
   | inl hr1ltu =>
     refine contra r1 u v w hr1ltu ?_ hdiffbound heq.symm
-    · have := highBitsCoeff_lt_useHintModulus_of_isApproved ctx (r + s)
+    · have := highBitsCoeff_lt_m ctx (r + s)
       rwa [highBitsCoeff, hdecomp_rs] at this
   | inr hultr1 =>
     refine contra u r1 w v hultr1 ?_ ?_ heq
-    · have := highBitsCoeff_lt_useHintModulus_of_isApproved ctx r
+    · have := highBitsCoeff_lt_m ctx r
       rwa [highBitsCoeff, hdecomp_r] at this
     · rw [show w - v = -(v - w) from by ring, Int.natAbs_neg]
       exact hdiffbound
@@ -555,7 +555,7 @@ private theorem useHintCoeff_shift_sub_bound_of_isApproved
   rcases hdec : decomposeCoeff r (alpha / 2) with ⟨r1, r0⟩
   have hdecomp : alpha * (r1 : Coeff) + r0 = r := decomposeCoeff_eq r ctx.h2α hdec
   have hr1lt : r1 < m := by
-    have := highBitsCoeff_lt_useHintModulus_of_isApproved ctx r
+    have := highBitsCoeff_lt_m ctx r
     rwa [highBitsCoeff, hdec] at this
   have hr0bound := lowBitsCoeff_bound r ctx.hγ hdec
   suffices h : ∃ v : ℤ, r - (alpha : Coeff) * (useHintCoeff _ r (alpha / 2) : Coeff) = v
@@ -577,7 +577,7 @@ private theorem useHintCoeff_shift_sub_bound_of_isApproved
         · use r0 - alpha - 1; constructor
           · rw [show useHintCoeff true r (alpha / 2) = 0 by
                 simp [useHintCoeff, hdec, hr0pos, ctx.h2α, ctx.hmdef, show r1 + 1 = m by omega]]
-            zify [← hdecomp, show r1 = m - 1 by omega, alphaMul_pred_m_eq_coeff ctx]
+            zify [← hdecomp, show r1 = m - 1 by omega, alpha_mul_pred_m_eq ctx]
             ring_nf
           · omega
       · by_cases hr1zero : r1 = 0
@@ -585,7 +585,7 @@ private theorem useHintCoeff_shift_sub_bound_of_isApproved
           · have huse : useHintCoeff true r (alpha / 2) = m - 1 := by
               have hpred : (m - 1) % m = m - 1 := Nat.mod_eq_of_lt (Nat.pred_lt ctx.hm.ne')
               simp [useHintCoeff, hdec, hr0pos, hr1zero, ctx.h2α, ctx.hmdef, hpred]
-            rw [huse, alphaMul_pred_m_eq_coeff ctx, ← hdecomp, hr1zero]
+            rw [huse, alpha_mul_pred_m_eq ctx, ← hdecomp, hr1zero]
             simp [sub_sub_eq_add_sub]
           · omega
         · use r0 + alpha; constructor
@@ -599,7 +599,7 @@ private theorem useHintCoeff_shift_sub_bound_of_isApproved
             ring_nf
           · omega
 
-private theorem decomposeCoeff_mid_of_isApproved
+private theorem decomposeCoeff_add_eq_of_natAbs_le
     {alpha m : ℕ} (ctx : BalancedDecomp alpha m) (r : Coeff) (z0 r0 : ℤ) (r1 : ℕ)
     (hdec : decomposeCoeff r (alpha / 2) = (r1, r0))
     (hvlow : -(alpha / 2 : ℤ) < r0 + z0)
@@ -608,7 +608,7 @@ private theorem decomposeCoeff_mid_of_isApproved
       (highBitsCoeff r (alpha / 2), lowBitsCoeff r (alpha / 2) + z0) := by
   set v : ℤ := r0 + z0
   have hr1lt : r1 < m := by
-    have := highBitsCoeff_lt_useHintModulus_of_isApproved ctx r
+    have := highBitsCoeff_lt_m ctx r
     rwa [highBitsCoeff, hdec] at this
   have hcore : alpha * (r1 : Coeff) + v = r + z0 := by
     dsimp [v]; push_cast; rw [← add_assoc, decomposeCoeff_eq r ctx.h2α hdec]
@@ -620,7 +620,7 @@ private theorem decomposeCoeff_mid_of_isApproved
   rw [decomposeCoeff_unique ctx r1 v hr1lt hv_bound hv_neg_cond hcore]
   simp [highBitsCoeff, lowBitsCoeff, v, hdec]
 
-private theorem highBitsCoeff_of_pos_overflow {alpha m : ℕ} (ctx : BalancedDecomp alpha m)
+private theorem highBitsCoeff_eq_of_pos_overflow {alpha m : ℕ} (ctx : BalancedDecomp alpha m)
     {s : Coeff} (r1 : ℕ) (v : ℤ)
     (hr1 : r1 < m)
     (hv_lo : (alpha / 2 : ℤ) < v)
@@ -631,17 +631,17 @@ private theorem highBitsCoeff_of_pos_overflow {alpha m : ℕ} (ctx : BalancedDec
   have h2α := ctx.h2α
   by_cases hwrap : r1 + 1 < m
   · rw [Nat.mod_eq_of_lt hwrap]
-    exact highBitsCoeff_of_repr ctx (r1+1) (v - alpha) hwrap (by omega) (by omega)
+    exact highBitsCoeff_eq_of_repr ctx (r1+1) (v - alpha) hwrap (by omega) (by omega)
       (by rw [← hsum, Nat.cast_add, Nat.cast_one]; push_cast; ring)
   · push Not at hwrap
     rw [show r1 + 1 = m  by omega, Nat.mod_self]
-    exact highBitsCoeff_of_repr ctx 0 (v - alpha - 1) ctx.hm (by omega) (by omega)
+    exact highBitsCoeff_eq_of_repr ctx 0 (v - alpha - 1) ctx.hm (by omega) (by omega)
       (by
         rw [Nat.cast_zero, mul_zero, zero_add, ← hsum,
-        show r1 = m - 1 from by omega, alphaMul_pred_m_eq_coeff ctx]
+        show r1 = m - 1 from by omega, alpha_mul_pred_m_eq ctx]
         push_cast; ring)
 
-private theorem highBitsCoeff_of_neg_overflow {alpha m : ℕ} (ctx : BalancedDecomp alpha m)
+private theorem highBitsCoeff_eq_of_neg_overflow {alpha m : ℕ} (ctx : BalancedDecomp alpha m)
     {s : Coeff} (r1 : ℕ) (v : ℤ)
     (hr1 : r1 < m)
     (hv_lo : -(alpha : ℤ) ≤ v)
@@ -651,16 +651,16 @@ private theorem highBitsCoeff_of_neg_overflow {alpha m : ℕ} (ctx : BalancedDec
   have h2α := ctx.h2α
   rcases Nat.eq_zero_or_pos r1 with hr1z | hr1pos
   · rw [hr1z, zero_add, Nat.mod_eq_of_lt (Nat.sub_lt ctx.hm (by decide))]
-    exact highBitsCoeff_of_repr ctx
+    exact highBitsCoeff_eq_of_repr ctx
       (m - 1) (v + alpha + 1) (Nat.pred_lt ctx.hm.ne') (by omega) (by omega)
-      (by rw [alphaMul_pred_m_eq_coeff ctx, ← hsum, hr1z]; push_cast; ring)
+      (by rw [alpha_mul_pred_m_eq ctx, ← hsum, hr1z]; push_cast; ring)
   · rw [show r1 + m - 1 = (r1 - 1) + m from by omega,
         Nat.add_mod_right, Nat.mod_eq_of_lt (by omega)]
-    exact highBitsCoeff_of_repr ctx (r1 - 1) (v + alpha)
+    exact highBitsCoeff_eq_of_repr ctx (r1 - 1) (v + alpha)
       (show r1 - 1 < m by omega) (by omega) (by omega)
       (by rw [Nat.cast_sub hr1pos, ← hsum]; push_cast; ring)
 
-private theorem useHintCoeff_correct_of_small_of_isApproved
+private theorem useHintCoeff_makeHintCoeff_eq_of_small
     {alpha m : ℕ} (ctx : BalancedDecomp alpha m) (z r : Coeff)
     (hz : (centeredRepr z).natAbs ≤ alpha / 2) :
     useHintCoeff (makeHintCoeff z r (alpha / 2)) r (alpha / 2) =
@@ -670,7 +670,7 @@ private theorem useHintCoeff_correct_of_small_of_isApproved
   set v : ℤ := r0 + z0
   have hr1eq : highBitsCoeff r (alpha / 2) = r1 := by simp [highBitsCoeff, hdec]
   have hr1lt : r1 < m := by
-    have h := highBitsCoeff_lt_useHintModulus_of_isApproved ctx r
+    have h := highBitsCoeff_lt_m ctx r
     rwa [highBitsCoeff, hdec] at h
   have hr0bound := lowBitsCoeff_bound r ctx.hγ hdec
   have hzcast : z = z0 := centeredRepr_intCast z
@@ -687,9 +687,9 @@ private theorem useHintCoeff_correct_of_small_of_isApproved
     · have huse : useHintCoeff true r (alpha / 2) = (r1 + 1) % m := by
         simp [useHintCoeff, hdec, show 0 < r0 by omega, ctx.h2α, ctx.hmdef]
       simp only [makeHintCoeff, ne_eq, hneq, not_false_eq_true, decide_true, huse]
-      exact (highBitsCoeff_of_pos_overflow ctx r1 v hr1lt (by omega) (by omega) hsum).symm
+      exact (highBitsCoeff_eq_of_pos_overflow ctx r1 v hr1lt (by omega) (by omega) hsum).symm
     · have : highBitsCoeff (r + z) (alpha / 2) = highBitsCoeff r (alpha / 2) := by
-        rw [highBitsCoeff, hzcast, decomposeCoeff_mid_of_isApproved ctx r z0 r0 r1 hdec hlo hhi]
+        rw [highBitsCoeff, hzcast, decomposeCoeff_add_eq_of_natAbs_le ctx r z0 r0 r1 hdec hlo hhi]
       exact absurd this.symm hneq
     · have huse : useHintCoeff true r (alpha / 2) = (r1 + m - 1) % m := by
         simp [useHintCoeff, hdec, show ¬0 < r0 by omega, ctx.h2α, ctx.hmdef]
@@ -701,13 +701,13 @@ private theorem useHintCoeff_correct_of_small_of_isApproved
             have hr1z' : r1 = 0 := by omega
             have hrz : r + z = (-(alpha / 2 : ℤ) : Coeff) := by simpa [hv, hr1z'] using hsum.symm
             have hrepr: highBitsCoeff (-(alpha / 2 : ℤ) : Coeff) (alpha / 2) = 0 :=
-              highBitsCoeff_of_repr ctx 0 (-(alpha / 2 : ℤ)) ctx.hm
+              highBitsCoeff_eq_of_repr ctx 0 (-(alpha / 2 : ℤ)) ctx.hm
                 (by omega) (fun _ => Or.inl rfl) (by simp)
             exact hneq (by rw [hr1eq, hr1z', hrz, hrepr])⟩
       simp only [makeHintCoeff, ne_eq, hneq, not_false_eq_true, decide_true, huse]
-      rw [highBitsCoeff_of_neg_overflow ctx r1 v hr1lt (by omega) hv_hi hsum]
+      rw [highBitsCoeff_eq_of_neg_overflow ctx r1 v hr1lt (by omega) hv_hi hsum]
 
-private theorem coeff_mul_left_injective_of_isUnit {c : Coeff} (hc : IsUnit c) :
+private theorem mul_left_injective_of_isUnit {c : Coeff} (hc : IsUnit c) :
     Function.Injective fun x : Coeff => c * x := by
   intro x y hxy
   rcases hc with ⟨u, rfl⟩
@@ -721,7 +721,7 @@ theorem highBitsShift_injective_of_isApproved (p : Params)
   refine Poly.ext_get_eq fun j => ?_
   have hcoeff : (2 * p.gamma2 : ℕ) * x.get j = (2 * p.gamma2 : ℕ) * y.get j := by
     simpa [highBitsShift] using congrArg (fun v : Rq => v.get j) hxy
-  exact coeff_mul_left_injective_of_isUnit (BalancedDecomp.ofApproved hp).hunit hcoeff
+  exact mul_left_injective_of_isUnit (BalancedDecomp.ofApproved hp).hunit hcoeff
 
 /-- Concrete `Power2RoundOps` with `Power2High = Rq`. -/
 def concretePower2RoundOps : MLDSA.Power2RoundOps where
@@ -747,7 +747,7 @@ theorem concreteRounding_useHint_correct_of_isApproved (p : Params)
   refine Poly.ext_get_eq fun j => ?_
   simp only [useHint, makeHint, highBits, Vector.get_ofFn, Rq.get_add]
   apply congrArg fun n : ℕ => (n : Coeff)
-  simpa using useHintCoeff_correct_of_small_of_isApproved (BalancedDecomp.ofApproved hp)
+  simpa using useHintCoeff_makeHintCoeff_eq_of_small (BalancedDecomp.ofApproved hp)
     (z := z.get j) (r := r.get j) (by simpa using cInfNorm_le_iff.mp hz j)
 
 theorem concreteRounding_useHint_bound_of_isApproved (p : Params)
@@ -771,14 +771,14 @@ theorem concreteRounding_hide_low_of_isApproved (p : Params)
   have hr : (lowBitsCoeff (r.get j) p.gamma2).natAbs < p.gamma2 - b := by
     have hcoeff : (lowBitsCoeff (r.get j) p.gamma2).natAbs ≤ cInfNorm (lowBits p r) := by
       have := coeff_le_cInfNorm (lowBits p r) j
-      rwa [lowBits_get, lowBits_centeredRepr (r := r.get j)
-        (hγ := gamma2_pos_of_isApproved hp)
-        (hq := gamma2_double_lt_modulus_of_isApproved hp)] at this
+      rwa [lowBits_get, centeredRepr_intCast_lowBitsCoeff (r := r.get j)
+        (hγ := gamma2_pos hp)
+        (hq := two_gamma2_lt_modulus hp)] at this
     exact hcoeff.trans_lt (Nat.lt_sub_of_add_lt hlow)
   set alpha : ℕ := 2 * p.gamma2
   have : p.gamma2 = alpha /2 := by omega
   rw [this] at hr ⊢
-  exact highBitsCoeff_add_eq_of_small_of_isApproved
+  exact highBitsCoeff_add_eq_of_centeredRepr_lt
     (BalancedDecomp.ofApproved hp) (r.get j) (s.get j) (cInfNorm_le_iff.mp hs j) hr
 
 theorem concretePower2RoundLaws :
@@ -789,8 +789,8 @@ theorem concreteRoundingLaws_of_isApproved (p : Params) (hp : p.isApproved) :
     RoundingOps.Laws (ring := coeffRing) (concreteRoundingOps p) cInfNorm where
   high_low_decomp := concreteRounding_high_low_decomp p
   lowBits_bound r := by
-    simpa using concreteRounding_lowBits_bound p (gamma2_pos_of_isApproved hp)
-      (gamma2_double_lt_modulus_of_isApproved hp) r
+    simpa using concreteRounding_lowBits_bound p (gamma2_pos hp)
+      (two_gamma2_lt_modulus hp) r
   hide_low r s b hs hlow :=
     concreteRounding_hide_low_of_isApproved p hp r s b hs (by simpa using hlow)
   shift_injective := highBitsShift_injective_of_isApproved p hp
