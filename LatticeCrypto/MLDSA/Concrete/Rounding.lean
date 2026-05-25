@@ -157,7 +157,6 @@ def hintWeight (h : Hint) : ℕ :=
 private structure BalancedDecomp (alpha m : ℕ) : Prop where
   hα   : 0 < alpha
   hγ   : 0 < alpha / 2
-  h2leα: 2 ≤ alpha
   h2α  : 2 * (alpha / 2) = alpha
   hγ2  : 2 * (alpha / 2) < modulus
   hm   : 0 < m
@@ -172,7 +171,6 @@ private def BalancedDecomp.ofApproved {p : Params} (hp : p.isApproved) :
     BalancedDecomp (2 * p.gamma2) ((modulus - 1) / (2 * p.gamma2)) where
   hα     := by rcases hp with rfl | rfl | rfl <;> decide
   hγ     := by rcases hp with rfl | rfl | rfl <;> decide
-  h2leα  := by rcases hp with rfl | rfl | rfl <;> decide
   h2α    := by rw [Nat.mul_div_cancel_left p.gamma2 (show 0 < 2 by decide)]
   hγ2    := by rcases hp with rfl | rfl | rfl <;> decide
   hm     := by rcases hp with rfl | rfl | rfl <;> decide
