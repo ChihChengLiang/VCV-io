@@ -586,19 +586,12 @@ private theorem decomposeCoeff_add_eq_of_natAbs_le
     (hvup : r0 + z0 ≤ alpha / 2) :
     decomposeCoeff (r + z0) (alpha / 2) =
       (highBitsCoeff r (alpha / 2), lowBitsCoeff r (alpha / 2) + z0) := by
-  set v : ℤ := r0 + z0
-  have hr1lt : r1 < m := by
-    have := highBitsCoeff_lt_m ctx r
-    rwa [highBitsCoeff, hdec] at this
-  have hcore : alpha * (r1 : Coeff) + v = r + z0 := by
-    dsimp [v]; push_cast; rw [← add_assoc, decomposeCoeff_eq r ctx.h2α hdec]
-  have hv_bound : v.natAbs ≤ alpha / 2 := natAbs_le_of_neg_le_and_le (le_of_lt hvlow) hvup
-  have hv_neg_cond : v < 0 → r1 = 0 ∨ v.natAbs < alpha / 2 := fun hvneg =>
-    Or.inr (by
-      have h : (v.natAbs : ℤ) = -v := Int.ofNat_natAbs_of_nonpos hvneg.le
-      exact_mod_cast h ▸ (show -v < alpha / 2 by omega))
-  rw [decomposeCoeff_unique ctx r1 v hr1lt hv_bound hv_neg_cond hcore]
-  simp [highBitsCoeff, lowBitsCoeff, v, hdec]
+  simp only [highBitsCoeff, hdec, lowBitsCoeff]
+  refine decomposeCoeff_unique ctx r1 (r0 + z0) ?_ ?_ ?_ ?_
+  · simpa [highBitsCoeff, hdec] using highBitsCoeff_lt_m ctx r
+  · exact natAbs_le_of_neg_le_and_le (le_of_lt hvlow) hvup
+  · intros; right; omega
+  · push_cast; rw [← add_assoc, decomposeCoeff_eq r ctx.h2α hdec]
 
 private theorem highBitsCoeff_eq_of_pos_overflow {alpha m : ℕ} (ctx : BalancedDecomp alpha m)
     {s : Coeff} (r1 : ℕ) (v : ℤ)
