@@ -680,9 +680,8 @@ private theorem useHintCoeff_makeHintCoeff_eq_of_small
         simp [useHintCoeff, hdec, show 0 < r0 by omega, ctx.h2α, ctx.hmdef]
       simp only [makeHintCoeff, ne_eq, hneq, not_false_eq_true, decide_true, huse]
       exact (highBitsCoeff_eq_of_pos_overflow ctx r1 v hr1lt (by omega) (by omega) hsum).symm
-    · have : highBitsCoeff (r + z) (alpha / 2) = highBitsCoeff r (alpha / 2) := by
-        rw [highBitsCoeff, hzcast, decomposeCoeff_add_eq_of_natAbs_le ctx r z0 r0 r1 hdec hlo hhi]
-      exact absurd this.symm hneq
+    · by_contra; apply hneq.symm
+      rw [highBitsCoeff, hzcast, decomposeCoeff_add_eq_of_natAbs_le ctx r z0 r0 r1 hdec hlo hhi]
     · have huse : useHintCoeff true r (alpha / 2) = (r1 + m - 1) % m := by
         simp [useHintCoeff, hdec, show ¬0 < r0 by omega, ctx.h2α, ctx.hmdef]
       have hv_hi : v < -(alpha / 2 : ℤ) ∨ (v = -(alpha / 2 : ℤ) ∧ 0 < r1) := by
