@@ -163,7 +163,6 @@ private structure BalancedDecomp (alpha m : ℕ) : Prop where
   hmdef: (modulus - 1) / alpha = m
   hqm1 : alpha * m = modulus - 1
   hq   : alpha < modulus
-  hdvd : alpha ∣ modulus - 1
   hsmall : 2 * (alpha + 1) < modulus
   hunit  : IsUnit (alpha : Coeff)
 
@@ -177,7 +176,6 @@ private def BalancedDecomp.ofApproved {p : Params} (hp : p.isApproved) :
   hmdef  := by rcases hp with rfl | rfl | rfl <;> decide
   hqm1   := Nat.mul_div_cancel' (by rcases hp with rfl | rfl | rfl <;> decide)
   hq     := by rcases hp with rfl | rfl | rfl <;> decide
-  hdvd   := by rcases hp with rfl | rfl | rfl <;> decide
   hsmall := by rcases hp with rfl | rfl | rfl <;> decide
   hunit  := (ZMod.isUnit_iff_coprime _ _).mpr (by rcases hp with rfl | rfl | rfl <;> decide)
 
