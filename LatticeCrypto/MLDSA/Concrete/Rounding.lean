@@ -383,8 +383,9 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
     · refine highBitsCoeff_eq_of_euclid ctx.hα ctx.h2α hval ht hside ?_
       show alpha * r1 ≠ modulus - 1
       exact ne_of_lt (by rw [← ctx.hqm1]; exact Nat.mul_lt_mul_of_pos_left hr1 ctx.hα)
-  by_cases hr0nn: 0 ≤ r0
-  · use r1, r0.natAbs; right
+  cases le_or_gt 0 r0 with
+  | inl hr0nn =>
+    use r1, r0.natAbs; right
     refine ⟨by omega, ?_, ?_⟩
     · have hrcast : r = ((alpha * r1 + n : ℕ) : Coeff) := by
         simp [← hdecomp, n]
@@ -392,16 +393,16 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
         simp [abs_eq_self.mpr hr0nn]
       rw [hrcast, ZMod.val_natCast_of_lt hltq]
     · left; exact ⟨(show n ≤ alpha/2 by omega), rfl⟩
-  · cases Nat.eq_zero_or_pos r1 with
+  | inr hr0neg =>
+    cases Nat.eq_zero_or_pos r1 with
     | inl hr1z =>
-      push Not at hr0nn
       have hrn : r = -(n : ℤ) := by
-        simp [hr1z, ← hdecomp, n, abs_eq_neg_self.mpr (Int.le_of_lt hr0nn)]
+        simp [hr1z, ← hdecomp, n, abs_eq_neg_self.mpr (Int.le_of_lt hr0neg)]
       have hnltq : n < modulus := lt_of_le_of_lt hr0 (by have := ctx.hq; omega)
       have hneq : ((n : ℕ) : Coeff) ≠ 0 := by
         intro h
         exact absurd
-          (Nat.le_of_dvd (Int.natAbs_pos.mpr hr0nn.ne) ((ZMod.natCast_eq_zero_iff n modulus).mp h))
+          (Nat.le_of_dvd (Int.natAbs_pos.mpr hr0neg.ne) ((ZMod.natCast_eq_zero_iff n modulus).mp h))
           hnltq.not_ge
       have hval : r.val = modulus - n := by
         haveI : NeZero ((n : ℕ) : Coeff) := ⟨hneq⟩
@@ -437,7 +438,6 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
           exact le_trans hn_lt_alpha.le (Nat.le_mul_of_pos_right alpha hr1pos)
         have hval  : r.val = alpha * r1 - n := by
           have hrcast : r = ((alpha * r1 - n : ℕ) : Coeff) := by
-            have hr0neg : r0 < 0 := lt_of_not_ge hr0nn
             zify [← hdecomp, Nat.cast_sub hnle,
               show (r0 : Coeff) = -((n : ℕ) : Coeff) by
                 simp [Nat.cast_natAbs, n, abs_eq_neg_self.mpr (Int.le_of_lt hr0neg)]]
