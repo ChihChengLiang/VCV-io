@@ -394,7 +394,6 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
   | inr hr0neg =>
     cases Nat.eq_zero_or_pos r1 with
     | inl hr1z =>
-      use m, alpha + 1 - n; left
       have hrn : r = -(n : ℤ) := by
         simp [hr1z, ← hdecomp, n, abs_eq_neg_self.mpr hr0neg.le]
       have hnltq : n < modulus := lt_of_le_of_lt hr0 (by have := ctx.hq; omega)
@@ -405,26 +404,35 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
       have hval : r.val = modulus - n := by
         haveI : NeZero ((n : ℕ) : Coeff) := ⟨hneq⟩
         simp [hrn, ZMod.val_neg_of_ne_zero n, ZMod.val_natCast_of_lt hnltq]
+      suffices h2 : ∃ (q t : ℕ ), r.val = alpha * q + t ∧ t < alpha ∧
+         ((t ≤ alpha / 2 ∧ alpha * q = modulus -1) ∨
+          (alpha / 2 < t ∧ alpha * (q + 1) = modulus -1)) ∧ r1 = 0
+          by
+        obtain ⟨ q, t, hrepr, ht, hside, hr1 ⟩ := h2
+        use q, t; left
+        have hmod : r.val % alpha = t := by
+          rw [hrepr, Nat.add_comm, Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt ht]
+        have hdiv : r.val / alpha = q := by
+          rw [hrepr, Nat.add_comm, Nat.add_mul_div_left _ _ ctx.hα, Nat.div_eq_of_lt ht, zero_add]
+        simp only [highBitsCoeff, decomposeCoeff, ctx.h2α, hmod, hdiv]
+        rcases hside with ⟨ hle, heq ⟩ | ⟨ hgt, heq ⟩
+        · simp [hle, heq, hr1]
+        · simp [not_le.mpr hgt, heq, hr1]
       by_cases hn1 : n = 1
-      · simp_rw [hn1] at *
-        have hcond1 : r.val % alpha ≤ alpha / 2 := by
-          rw [hval, ←ctx.hqm1, Nat.mul_mod_right]; simp only [zero_le]
-        have hcond2 : alpha * (r.val / alpha) = modulus - 1 := by
-          rw [hval, ←ctx.hqm1, Nat.mul_div_cancel_left _ ctx.hα]
-        simp [highBitsCoeff, decomposeCoeff, hr1z, ctx.h2α, hcond1, hcond2]
-      · have hrepr : modulus - n = (alpha + 1 - n) + (m - 1) * alpha := by
-          rw [Nat.sub_mul, mul_comm, ctx.hqm1, one_mul]
+      · use m, 0
+        simp_rw [hn1] at *
+        refine ⟨ ?_, ctx.hα, ?_, hr1z ⟩
+        · simp [hval, ctx.hqm1]
+        · left; exact ⟨ by omega, ctx.hqm1 ⟩
+      · use m - 1, alpha + 1 - n;
+        refine ⟨ ?_, by omega, ?_, hr1z⟩
+        · change r.val = alpha * (m - 1) + (alpha + 1 - n)
+          rw[hval, Nat.mul_sub, mul_one, ctx.hqm1]
           zify [show n ≤ alpha + 1 by omega,
                 show alpha ≤ modulus - 1 by haveI := ctx.hqm1; omega,
                 show 1 ≤ modulus by omega, hnltq.le]
-          ring_nf
-        have hltα : alpha + 1 - n < alpha := by omega
-        have hcond1 : ¬(r.val % alpha ≤ alpha / 2) := by
-          rw [hval, hrepr, Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hltα]; omega
-        have hcond2 : alpha * (r.val / alpha + 1) = modulus - 1 := by
-          rw [hval, hrepr, Nat.add_mul_div_right _ _ ctx.hα, Nat.div_eq_of_lt hltα, zero_add,
-            Nat.sub_add_cancel (ctx.hm), ctx.hqm1]
-        simp [highBitsCoeff, decomposeCoeff, hr1z, ctx.h2α, hcond1, hcond2]
+          ring
+        · right; exact ⟨ by omega, by rw[Nat.sub_add_cancel (by omega)]; exact ctx.hqm1⟩
     | inr hr1pos =>
       use r1 - 1, alpha - n; right
       refine ⟨by omega, ?_, ?_⟩
