@@ -387,8 +387,9 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
       rw [hrcast, ZMod.val_natCast_of_lt hltq]
     exact highBitsCoeff_eq_of_euclid ctx.hα ctx.h2α hval
       (by omega) (Or.inl ⟨(show n ≤ alpha/2 by omega), rfl⟩) hwrap
-  · by_cases hr1z : r1 = 0
-    · push Not at hr0nn
+  · cases Nat.eq_zero_or_pos r1 with
+    | inl hr1z =>
+      push Not at hr0nn
       have hrn : r = -(n : ℤ) := by
         simp [hr1z, ← hdecomp, n, abs_eq_neg_self.mpr (Int.le_of_lt hr0nn)]
       have hnltq : n < modulus := lt_of_le_of_lt hr0 (by have := ctx.hq; omega)
@@ -420,8 +421,8 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
           rw [hval, hrepr, Nat.add_mul_div_right _ _ ctx.hα, Nat.div_eq_of_lt hltα, zero_add,
             Nat.sub_add_cancel (ctx.hm), ctx.hqm1]
         simp [hr1z, ctx.h2α, hcond1, hcond2]
-    · have hr0neg : r0 < 0 := lt_of_not_ge hr0nn
-      have hr1pos : 0 < r1 := Nat.pos_of_ne_zero hr1z
+    | inr hr1pos =>
+      have hr0neg : r0 < 0 := lt_of_not_ge hr0nn
       have hnle  : n ≤ alpha * r1 := by
         have hn_lt_alpha : n < alpha := by omega
         exact le_trans hn_lt_alpha.le (Nat.le_mul_of_pos_right alpha hr1pos)
@@ -436,7 +437,7 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
         rw [hrcast, ZMod.val_natCast_of_lt hltq]
       have hval_repr : r.val = alpha * (r1 - 1) + (alpha - n) := by
         zify [hval, hn_lt, hnle,
-          show 1 ≤ r1 from Nat.one_le_cast_iff_ne_zero.mpr hr1z,
+          show 1 ≤ r1 from Nat.add_one_le_of_lt hr1pos,
           show alpha ≤ alpha * r1 from Nat.le_mul_of_pos_right alpha hr1pos]
         ring_nf
       exact highBitsCoeff_eq_of_euclid ctx.hα ctx.h2α hval_repr (by omega)
