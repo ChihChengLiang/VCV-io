@@ -380,7 +380,7 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
       · simp [not_le.mpr hgt, ← hr1q, hwrap]
   cases le_or_gt 0 r0 with
   | inl hr0nn =>
-    use r1, r0.natAbs; refine ⟨?_, by omega, ?_⟩
+    refine ⟨ r1, r0.natAbs, ?_, by omega, ?_ ⟩
     · have hrcast : r = ((alpha * r1 + n : ℕ) : Coeff) := by
         simp [← hdecomp, n]; congr 1; simp [abs_eq_self.mpr hr0nn]
       rw [hrcast, ZMod.val_natCast_of_lt hltq]
@@ -398,10 +398,10 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
         haveI : NeZero ((n : ℕ) : Coeff) := ⟨hneq⟩
         simp [hrn, ZMod.val_neg_of_ne_zero n, ZMod.val_natCast_of_lt hnltq]
       by_cases hn1 : n = 1
-      · use m, 0; simp_rw [hn1] at *; refine ⟨ ?_, ctx.hα, ?_⟩
-        · simp [hval, ctx.hqm1]
+      · refine ⟨ m, 0, ?_, ctx.hα, ?_ ⟩
+        · simp [hn1, hval, ctx.hqm1]
         · left; exact ⟨ by omega, by left; exact ⟨ctx.hqm1, hr1z ⟩⟩
-      · use m - 1, alpha + 1 - n; refine ⟨ ?_, by omega, ?_⟩
+      · refine ⟨ m - 1, alpha + 1 - n, ?_, by omega, ?_⟩
         · change r.val = alpha * (m - 1) + (alpha + 1 - n)
           rw[hval, Nat.mul_sub, mul_one, ctx.hqm1]
           zify [show n ≤ alpha + 1 by omega,
@@ -412,7 +412,7 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
           · omega
           · rw[Nat.sub_add_cancel (by omega)]; left; exact ⟨ ctx.hqm1, hr1z ⟩
     | inr hr1pos =>
-      use r1 - 1, alpha - n; refine ⟨?_, by omega, ?_⟩
+      refine ⟨ r1 - 1, alpha - n, ?_, by omega, ?_⟩
       · change r.val = alpha * (r1 - 1) + (alpha - n)
         have hnle  : n ≤ alpha * r1 := by
           have hn_lt_alpha : n < alpha := by omega
