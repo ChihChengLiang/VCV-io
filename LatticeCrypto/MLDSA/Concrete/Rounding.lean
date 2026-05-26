@@ -360,10 +360,10 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
       have := ctx.hqm1
       omega
     linarith
-  suffices h :  ∃ (q t : ℕ ), r.val = alpha * q + t ∧ t < alpha ∧
+  suffices hRecoverPath : ∃ (q t : ℕ ), r.val = alpha * q + t ∧ t < alpha ∧
       ((  t ≤ alpha / 2 ∧ ((alpha * q       = modulus - 1 ∧ r1 = 0) ∨ r1 = q )) ∨
       (   alpha / 2 < t ∧ ((alpha * (q + 1) = modulus - 1 ∧ r1 = 0) ∨ r1 = q + 1))) by
-    obtain ⟨ q, t, hrepr, ht, hside ⟩ := h
+    obtain ⟨ q, t, hrepr, ht, hside ⟩ := hRecoverPath
     have hmod : r.val % alpha = t := by
       rw [hrepr, Nat.add_comm, Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt ht]
     have hdiv : r.val / alpha = q := by
@@ -388,8 +388,7 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
   | inr hr0neg =>
     cases Nat.eq_zero_or_pos r1 with
     | inl hr1z =>
-      have hrn : r = -(n : ℤ) := by
-        simp [hr1z, ← hdecomp, n, abs_eq_neg_self.mpr hr0neg.le]
+      have hrn : r = -(n : ℤ) := by simp [hr1z, ← hdecomp, n, abs_eq_neg_self.mpr hr0neg.le]
       have hnltq : n < modulus := lt_of_le_of_lt hr0 (by have := ctx.hq; omega)
       have hneq : ((n : ℕ) : Coeff) ≠ 0 := by
         by_contra h; exact absurd
