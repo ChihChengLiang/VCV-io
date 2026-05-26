@@ -351,7 +351,9 @@ private theorem highBitsCoeff_eq_of_euclid {r : Coeff} {alpha q t r1 : ℕ}
   have hdiv : r.val / alpha = q := by
     rw [hval, Nat.add_comm, Nat.add_mul_div_left _ _ hα, Nat.div_eq_of_lt ht, zero_add]
   simp only [highBitsCoeff, decomposeCoeff, h2α, hmod, hdiv]
-  rcases hside with ⟨hle, rfl⟩ | ⟨hgt, rfl⟩ <;> simp_all; simp [not_le.mpr hgt]
+  rcases hside with ⟨hle, rfl⟩ | ⟨hgt, rfl⟩ <;> simp [hwrap]
+  · simp [hle]
+  · simp [not_le.mpr hgt]
 
 private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp alpha m)
     {r : Coeff} (r1 : ℕ) (r0 : ℤ)
@@ -374,6 +376,8 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
       have := ctx.hqm1
       omega
     linarith
+  have hwrap : alpha * r1 ≠ modulus - 1 := ne_of_lt
+      (by rw [← ctx.hqm1]; exact Nat.mul_lt_mul_of_pos_left hr1 ctx.hα)
   by_cases hr0nn: 0 ≤ r0
   · have hval : r.val = alpha * r1 + r0.natAbs := by
       have hrcast : r = ((alpha * r1 + n : ℕ) : Coeff) := by
@@ -381,8 +385,6 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
         congr 1
         simp [abs_eq_self.mpr hr0nn]
       rw [hrcast, ZMod.val_natCast_of_lt hltq]
-    have hwrap : alpha * r1 ≠ modulus - 1 := ne_of_lt
-      (by rw [← ctx.hqm1]; exact Nat.mul_lt_mul_of_pos_left hr1 ctx.hα)
     exact highBitsCoeff_eq_of_euclid ctx.hα ctx.h2α hval
       (by omega) (Or.inl ⟨(show n ≤ alpha/2 by omega), rfl⟩) hwrap
   · by_cases hr1z : r1 = 0
@@ -437,8 +439,6 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
           show 1 ≤ r1 from Nat.one_le_cast_iff_ne_zero.mpr hr1z,
           show alpha ≤ alpha * r1 from Nat.le_mul_of_pos_right alpha hr1pos]
         ring_nf
-      have hwrap : alpha * r1 ≠ modulus - 1 := ne_of_lt
-        (by rw [← ctx.hqm1]; exact Nat.mul_lt_mul_of_pos_left hr1 ctx.hα)
       exact highBitsCoeff_eq_of_euclid ctx.hα ctx.h2α hval_repr (by omega)
         (Or.inr ⟨(by omega), (Nat.sub_add_cancel hr1pos).symm⟩) hwrap
 
