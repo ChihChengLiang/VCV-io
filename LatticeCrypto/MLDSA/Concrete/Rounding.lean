@@ -340,21 +340,6 @@ private theorem alpha_mul_pred_m_eq {alpha m : ℕ} (ctx : BalancedDecomp alpha 
     ctx.hqm1, Nat.cast_sub (show 1 ≤ modulus by decide), ZMod.natCast_self]
   ring_nf
 
-private theorem highBitsCoeff_eq_of_euclid {r : Coeff} {alpha q t r1 : ℕ}
-    (hα : 0 < alpha) (h2α : 2 * (alpha / 2) = alpha)
-    (hval : r.val = alpha * q + t) (ht : t < alpha)
-    (hside : (t ≤ alpha / 2 ∧ r1 = q) ∨ (alpha / 2 < t ∧ r1 = q + 1))
-    (hwrap : alpha * r1 ≠ modulus - 1) :
-    highBitsCoeff r (alpha / 2) = r1 := by
-  have hmod : r.val % alpha = t := by
-    rw [hval, Nat.add_comm, Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt ht]
-  have hdiv : r.val / alpha = q := by
-    rw [hval, Nat.add_comm, Nat.add_mul_div_left _ _ hα, Nat.div_eq_of_lt ht, zero_add]
-  simp only [highBitsCoeff, decomposeCoeff, h2α, hmod, hdiv]
-  rcases hside with ⟨hle, rfl⟩ | ⟨hgt, rfl⟩ <;> simp [hwrap]
-  · simp [hle]
-  · simp [not_le.mpr hgt]
-
 private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp alpha m)
     {r : Coeff} (r1 : ℕ) (r0 : ℤ)
     (hr1 : r1 < m)
