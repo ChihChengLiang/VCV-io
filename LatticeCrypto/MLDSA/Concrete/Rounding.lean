@@ -389,7 +389,7 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
     cases Nat.eq_zero_or_pos r1 with
     | inl hr1z =>
       have hrn : r = -(n : ℤ) := by simp [hr1z, ← hdecomp, n, abs_eq_neg_self.mpr hr0neg.le]
-      have hnltq : n < modulus := lt_of_le_of_lt hr0 (by have := ctx.hq; omega)
+      have hnltq : n < modulus := by simp only [hr1z, mul_zero, zero_add] at hltq; exact hltq
       have hneq : ((n : ℕ) : Coeff) ≠ 0 := by
         by_contra h; exact absurd
           (Nat.le_of_dvd (Int.natAbs_pos.mpr hr0neg.ne) ((ZMod.natCast_eq_zero_iff n modulus).mp h))
@@ -415,8 +415,7 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
       refine ⟨ r1 - 1, alpha - n, ?_, by omega, ?_⟩
       · change r.val = alpha * (r1 - 1) + (alpha - n)
         have hnle  : n ≤ alpha * r1 := by
-          have hn_lt_alpha : n < alpha := by omega
-          exact le_trans hn_lt_alpha.le (Nat.le_mul_of_pos_right alpha hr1pos)
+          exact le_trans hn_lt.le (Nat.le_mul_of_pos_right alpha hr1pos)
         have hval : r.val = alpha * r1 - n := by
           have hrcast : r = ((alpha * r1 - n : ℕ) : Coeff) := by
             zify [← hdecomp, Nat.cast_sub hnle,
