@@ -349,15 +349,12 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
     highBitsCoeff r (alpha / 2) = r1 := by
   set n := r0.natAbs
   have hn_lt : n < alpha := by have := ctx.hα; omega
-  have hmul : alpha * (m - 1) + alpha = alpha * m := by
-    rw [Nat.mul_sub_one, Nat.sub_add_cancel]
-    exact Nat.le_mul_of_pos_right alpha ctx.hm
   have hltq : alpha * r1 + n < modulus := by
     have hle : alpha * r1 + n ≤ alpha * (m - 1) + alpha/2 :=
       Nat.add_le_add (Nat.mul_le_mul_left alpha (by omega)) (by simp [hr0])
     have htop : alpha * (m - 1) + alpha/2 < modulus := by
       rw [Nat.mul_sub_one, ctx.hqm1]
-      have := ctx.hqm1
+      have hle : alpha ≤ modulus - 1 := ctx.hqm1 ▸ Nat.le_mul_of_pos_right alpha ctx.hm
       omega
     linarith
   suffices hRecoverPath : ∃ (q t : ℕ ), r.val = alpha * q + t ∧ t < alpha ∧
@@ -391,9 +388,8 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
       have hrn : r = -(n : ℤ) := by simp [hr1z, ← hdecomp, n, abs_eq_neg_self.mpr hr0neg.le]
       have hnltq : n < modulus := by simp only [hr1z, mul_zero, zero_add] at hltq; exact hltq
       have hneq : ((n : ℕ) : Coeff) ≠ 0 := by
-        by_contra h; exact absurd
+        by_contra h; exact hnltq.not_ge
           (Nat.le_of_dvd (Int.natAbs_pos.mpr hr0neg.ne) ((ZMod.natCast_eq_zero_iff n modulus).mp h))
-          hnltq.not_ge
       have hval : r.val = modulus - n := by
         haveI : NeZero ((n : ℕ) : Coeff) := ⟨hneq⟩
         simp [hrn, ZMod.val_neg_of_ne_zero n, ZMod.val_natCast_of_lt hnltq]
@@ -405,7 +401,7 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
         · change r.val = alpha * (m - 1) + (alpha + 1 - n)
           rw[hval, Nat.mul_sub, mul_one, ctx.hqm1]
           zify [show n ≤ alpha + 1 by omega,
-                show alpha ≤ modulus - 1 by haveI := ctx.hqm1; omega,
+                ctx.hqm1 ▸ Nat.le_mul_of_pos_right alpha ctx.hm,
                 show 1 ≤ modulus by omega, hnltq.le]
           ring
         · right; constructor
