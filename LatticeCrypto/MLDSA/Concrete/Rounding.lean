@@ -388,21 +388,18 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
     use r1, r0.natAbs; right
     refine ⟨by omega, ?_, ?_⟩
     · have hrcast : r = ((alpha * r1 + n : ℕ) : Coeff) := by
-        simp [← hdecomp, n]
-        congr 1
-        simp [abs_eq_self.mpr hr0nn]
+        simp [← hdecomp, n]; congr 1; simp [abs_eq_self.mpr hr0nn]
       rw [hrcast, ZMod.val_natCast_of_lt hltq]
     · left; exact ⟨(show n ≤ alpha/2 by omega), rfl⟩
   | inr hr0neg =>
     cases Nat.eq_zero_or_pos r1 with
     | inl hr1z =>
-      use m - 1, alpha + 1 - n; left
+      use m, alpha + 1 - n; left
       have hrn : r = -(n : ℤ) := by
-        simp [hr1z, ← hdecomp, n, abs_eq_neg_self.mpr (Int.le_of_lt hr0neg)]
+        simp [hr1z, ← hdecomp, n, abs_eq_neg_self.mpr hr0neg.le]
       have hnltq : n < modulus := lt_of_le_of_lt hr0 (by have := ctx.hq; omega)
       have hneq : ((n : ℕ) : Coeff) ≠ 0 := by
-        intro h
-        exact absurd
+        by_contra h; exact absurd
           (Nat.le_of_dvd (Int.natAbs_pos.mpr hr0neg.ne) ((ZMod.natCast_eq_zero_iff n modulus).mp h))
           hnltq.not_ge
       have hval : r.val = modulus - n := by
@@ -411,9 +408,9 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
       by_cases hn1 : n = 1
       · simp_rw [hn1] at *
         have hcond1 : r.val % alpha ≤ alpha / 2 := by
-          simp only [hval, ← ctx.hqm1, Nat.mul_mod_right, zero_le]
+          rw [hval, ←ctx.hqm1, Nat.mul_mod_right]; simp only [zero_le]
         have hcond2 : alpha * (r.val / alpha) = modulus - 1 := by
-          rw [hval, ← ctx.hqm1, Nat.mul_div_cancel_left _ ctx.hα, ctx.hqm1]
+          rw [hval, ←ctx.hqm1, Nat.mul_div_cancel_left _ ctx.hα]
         simp [highBitsCoeff, decomposeCoeff, hr1z, ctx.h2α, hcond1, hcond2]
       · have hrepr : modulus - n = (alpha + 1 - n) + (m - 1) * alpha := by
           rw [Nat.sub_mul, mul_comm, ctx.hqm1, one_mul]
@@ -435,14 +432,13 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
         have hnle  : n ≤ alpha * r1 := by
           have hn_lt_alpha : n < alpha := by omega
           exact le_trans hn_lt_alpha.le (Nat.le_mul_of_pos_right alpha hr1pos)
-        have hval  : r.val = alpha * r1 - n := by
+        have hval : r.val = alpha * r1 - n := by
           have hrcast : r = ((alpha * r1 - n : ℕ) : Coeff) := by
             zify [← hdecomp, Nat.cast_sub hnle,
               show (r0 : Coeff) = -((n : ℕ) : Coeff) by
                 simp [Nat.cast_natAbs, n, abs_eq_neg_self.mpr (Int.le_of_lt hr0neg)]]
             ring_nf
-          have hltq  : alpha * r1 - n < modulus :=
-            lt_of_le_of_lt (Nat.sub_le _ _) (by omega)
+          have hltq : alpha * r1 - n < modulus := lt_of_le_of_lt (Nat.sub_le _ _) (by omega)
           rw [hrcast, ZMod.val_natCast_of_lt hltq]
         zify [hval, hn_lt, hnle,
           show 1 ≤ r1 from Nat.add_one_le_of_lt hr1pos,
