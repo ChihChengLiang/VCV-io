@@ -362,7 +362,6 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
     (hr0_neg : r0 < 0 → r1 = 0 ∨ r0.natAbs < alpha / 2)
     (hdecomp : (alpha : Coeff) * (r1 : Coeff) + r0 = r) :
     highBitsCoeff r (alpha / 2) = r1 := by
-  simp only [highBitsCoeff, decomposeCoeff]
   set n := r0.natAbs
   have hn_lt : n < alpha := by have := ctx.hα; omega
   have hmul : alpha * (m - 1) + alpha = alpha * m := by
@@ -378,15 +377,15 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
     linarith
   suffices h : ∃ (q t : ℕ), (r1 = 0 ∧ highBitsCoeff r (alpha / 2) = r1) ∨
     (t < alpha ∧ r.val = alpha * q + t ∧
-    ((t ≤ alpha / 2 ∧ r1 = q) ∨ (alpha / 2 < t ∧ r1 = q + 1)) ∧  alpha * r1 ≠ modulus - 1) by
-    obtain ⟨q, t, ⟨hr1z, hgoal⟩  | ⟨ht, hval, hside, hwrap⟩⟩ := h
+    ((t ≤ alpha / 2 ∧ r1 = q) ∨ (alpha / 2 < t ∧ r1 = q + 1))) by
+    obtain ⟨q, t, ⟨hr1z, hgoal⟩  | ⟨ht, hval, hside⟩⟩ := h
     · exact hgoal
-    · exact highBitsCoeff_eq_of_euclid ctx.hα ctx.h2α hval ht hside hwrap
-  have hwrap : alpha * r1 ≠ modulus - 1 := ne_of_lt
-    (by rw [← ctx.hqm1]; exact Nat.mul_lt_mul_of_pos_left hr1 ctx.hα)
+    · refine highBitsCoeff_eq_of_euclid ctx.hα ctx.h2α hval ht hside ?_
+      show alpha * r1 ≠ modulus - 1
+      exact ne_of_lt (by rw [← ctx.hqm1]; exact Nat.mul_lt_mul_of_pos_left hr1 ctx.hα)
   by_cases hr0nn: 0 ≤ r0
   · use r1, r0.natAbs; right
-    refine ⟨by omega, ?_, ?_, hwrap⟩
+    refine ⟨by omega, ?_, ?_⟩
     · have hrcast : r = ((alpha * r1 + n : ℕ) : Coeff) := by
         simp [← hdecomp, n]
         congr 1
@@ -433,7 +432,7 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
         simp [highBitsCoeff, decomposeCoeff, hr1z, ctx.h2α, hcond1, hcond2]
     | inr hr1pos =>
       use r1 - 1, alpha - n; right
-      refine ⟨by omega, ?_, ?_, hwrap⟩
+      refine ⟨by omega, ?_, ?_⟩
       · change r.val = alpha * (r1 - 1) + (alpha - n)
         have hnle  : n ≤ alpha * r1 := by
           have hn_lt_alpha : n < alpha := by omega
