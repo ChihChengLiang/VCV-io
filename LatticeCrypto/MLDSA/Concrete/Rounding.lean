@@ -375,10 +375,10 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
       have := ctx.hqm1
       omega
     linarith
-  suffices h : ∃ (q t : ℕ), (r1 = 0 ∧ highBitsCoeff r (alpha / 2) = r1) ∨
+  suffices h : ∃ (q t : ℕ), highBitsCoeff r (alpha / 2) = r1 ∨
     (t < alpha ∧ r.val = alpha * q + t ∧
     ((t ≤ alpha / 2 ∧ r1 = q) ∨ (alpha / 2 < t ∧ r1 = q + 1))) by
-    obtain ⟨q, t, ⟨hr1z, hgoal⟩  | ⟨ht, hval, hside⟩⟩ := h
+    obtain ⟨q, t, hgoal | ⟨ht, hval, hside⟩⟩ := h
     · exact hgoal
     · refine highBitsCoeff_eq_of_euclid ctx.hα ctx.h2α hval ht hside ?_
       show alpha * r1 ≠ modulus - 1
@@ -409,14 +409,12 @@ private theorem highBitsCoeff_eq_of_repr {alpha m : ℕ} (ctx : BalancedDecomp a
       by_cases hn1 : n = 1
       · use m - 1, alpha; left
         simp_rw [hn1] at *
-        refine ⟨hr1z, ?_⟩
         · have hcond1 : r.val % alpha ≤ alpha / 2 := by
             simp only [hval, ← ctx.hqm1, Nat.mul_mod_right, zero_le]
           have hcond2 : alpha * (r.val / alpha) = modulus - 1 := by
             rw [hval, ← ctx.hqm1, Nat.mul_div_cancel_left _ ctx.hα, ctx.hqm1]
           simp [highBitsCoeff, decomposeCoeff, hr1z, ctx.h2α, hcond1, hcond2]
       · use m - 1, alpha + 1 - n; left
-        refine ⟨hr1z, ?_⟩
         have hrepr : modulus - n = (alpha + 1 - n) + (m - 1) * alpha := by
           rw [Nat.sub_mul, mul_comm, ctx.hqm1, one_mul]
           zify [show n ≤ alpha + 1 by omega,
