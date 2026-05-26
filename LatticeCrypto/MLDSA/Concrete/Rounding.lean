@@ -517,9 +517,9 @@ private theorem highBitsCoeff_add_eq_of_centeredRepr_lt
     · rw [show w - v = -(v - w) from by ring, Int.natAbs_neg]; exact hdiffbound
 
 private theorem useHintCoeff_shift_sub_le
-    {alpha m : ℕ} (ctx : BalancedDecomp alpha m) (h : Bool) (r : Coeff) :
+    {alpha m : ℕ} (ctx : BalancedDecomp alpha m) (hbit : Bool) (r : Coeff) :
     (centeredRepr
-      (r - (alpha : Coeff) * (useHintCoeff h r (alpha / 2) : Coeff))).natAbs ≤
+      (r - (alpha : Coeff) * (useHintCoeff hbit r (alpha / 2) : Coeff))).natAbs ≤
         alpha + 1 := by
   rcases hdec : decomposeCoeff r (alpha / 2) with ⟨r1, r0⟩
   have hdecomp : alpha * (r1 : Coeff) + r0 = r := decomposeCoeff_eq r ctx.h2α hdec
@@ -529,7 +529,7 @@ private theorem useHintCoeff_shift_sub_le
       ∧ v.natAbs ≤ alpha + 1 by
     obtain ⟨v, hveq, hvb⟩ := h
     rw [hveq, centeredRepr_intCast_eq_of_natAbs_le v hvb ctx.hsmall]; exact hvb
-  cases h with
+  cases hbit with
   | false =>
     use r0; exact ⟨by simp [useHintCoeff, hdec, sub_eq_iff_eq_add'.2 hdecomp.symm], by omega⟩
   | true =>
