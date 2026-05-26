@@ -452,24 +452,6 @@ private theorem alpha_le_natAbs_centeredRepr_mul
       _ ≤ alpha * m             := Nat.mul_le_mul_left alpha (Nat.succ_le_of_lt hzm)
       _ ≤ alpha * m + 1         := Nat.le_succ _
 
-private theorem decomposeCoeff_unique {alpha m : ℕ} (ctx : BalancedDecomp alpha m)
-    {r : Coeff} (r1 : ℕ) (r0 : ℤ)
-    (hr1 : r1 < m)
-    (hr0 : r0.natAbs ≤ alpha / 2)
-    (hr0_neg : r0 < 0 → r1 = 0 ∨ r0.natAbs < alpha / 2)
-    (hdecomp : (alpha : Coeff) * (r1 : Coeff) + r0 = r) :
-    decomposeCoeff r (alpha / 2) = (r1, r0) := by
-  have h1 := highBitsCoeff_eq_of_repr ctx r1 r0 hr1 hr0 hr0_neg hdecomp
-  have hdecomp' : (alpha : Coeff) * r1 + lowBitsCoeff r (alpha / 2) = r := by
-    have h := decomposeCoeff_eq r ctx.h2α (Prod.eta _)
-    simp only [highBitsCoeff, lowBitsCoeff, ← h1] at h ⊢; exact h
-  have hlow_eq := add_left_cancel (hdecomp'.trans hdecomp.symm)
-  have h2 : lowBitsCoeff r (alpha / 2) = r0 := by
-    have cr_eq := congrArg centeredRepr hlow_eq
-    rwa [centeredRepr_intCast_lowBitsCoeff r ctx.hγ ctx.hγ2,
-        centeredRepr_intCast_eq_of_natAbs_le r0 hr0 ctx.hγ2] at cr_eq
-  exact Prod.ext h1 h2
-
 private theorem highBitsCoeff_add_eq_of_centeredRepr_lt
     {alpha m b : ℕ} (ctx : BalancedDecomp alpha m) (r s : Coeff)
     (hs : (centeredRepr s).natAbs ≤ b)
@@ -637,9 +619,9 @@ private theorem useHintCoeff_makeHintCoeff_eq_of_small
       simp only [makeHintCoeff, ne_eq, hneq, not_false_eq_true, decide_true, huse]
       exact (highBitsCoeff_eq_of_pos_overflow ctx r1 v hr1lt (by omega) (by omega) hsum).symm
     · by_contra; apply hneq.symm
-      suffices h : decomposeCoeff (r + ↑z0) (alpha / 2) = (r1, r0 + z0) by
-        simp [highBitsCoeff, hdec, hzcast, h]
-      refine decomposeCoeff_unique (r := r + z0) ctx r1 (r0 + z0) ?_ ?_ ?_ ?_
+      suffices h : highBitsCoeff (r + ↑z0) (alpha / 2) = r1 by
+        rw [hzcast, h]; simp [highBitsCoeff, hdec]
+      refine highBitsCoeff_eq_of_repr ctx (r:= r + z0) r1 (r0 + z0) ?_ ?_ ?_ ?_
       · simpa [highBitsCoeff, hdec] using highBitsCoeff_lt_m ctx r
       · exact natAbs_le_of_neg_le_and_le (le_of_lt hlo) hhi
       · intros; right; omega
