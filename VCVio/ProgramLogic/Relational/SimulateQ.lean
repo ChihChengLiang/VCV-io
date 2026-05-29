@@ -974,7 +974,7 @@ private theorem tsum_probOutput_mul_tvDist_le_const_plus_probEvent_bad
     Summable.of_nonneg_of_le h_lhs_summand_nn h_lhs_summand_le h_p_summable
   have h_b_z_le_one : ∀ z : β,
       Pr[fun w : α × σ × Bool => w.2.2 = true | f₁ z].toReal ≤ 1 := fun z => by
-    simpa using ENNReal.toReal_mono one_ne_top probEvent_le_one
+    simpa only [toReal_one] using ENNReal.toReal_mono one_ne_top probEvent_le_one
   have h_rhs_summand_nn : ∀ z : β, 0 ≤ Pr[= z | mx].toReal *
       (c + Pr[fun w : α × σ × Bool => w.2.2 = true | f₁ z].toReal) :=
     fun z => mul_nonneg ENNReal.toReal_nonneg
@@ -1023,7 +1023,7 @@ private theorem tsum_probOutput_mul_tvDist_le_const_plus_probEvent_bad
           have h := probOutput_le_one (mx := mx) (x := z)
           exact ne_top_of_le_ne_top one_ne_top h).symm]
       rw [HasEvalPMF.tsum_probOutput_eq_one]
-      simp
+      simp only [toReal_one]
     rw [h_one, one_mul]
   have h_second_sum :
       (∑' z : β, Pr[= z | mx].toReal *
@@ -1077,11 +1077,11 @@ private theorem tvDist_simulateQ_run_query_bind_le
   set mx : OracleComp spec' (spec.Range t × σ × Bool) := (impl₁ t).run (s, false) with hmx_def
   set my : OracleComp spec' (spec.Range t × σ × Bool) := (impl₂ t).run (s, false) with hmy_def
   have hsim₁_eq : sim₁ = mx >>= f₁ := by
-    simp [hsim₁_def, hmx_def, hf₁_def, simulateQ_bind, simulateQ_query,
-      OracleQuery.input_query, OracleQuery.cont_query, StateT.run_bind]
+    simp only [hsim₁_def, simulateQ_bind, simulateQ_query, OracleQuery.input_query,
+      OracleQuery.cont_query, id_map, StateT.run_bind, hmx_def, hf₁_def]
   have hsim₂_eq : sim₂ = my >>= f₂ := by
-    simp [hsim₂_def, hmy_def, hf₂_def, simulateQ_bind, simulateQ_query,
-      OracleQuery.input_query, OracleQuery.cont_query, StateT.run_bind]
+    simp only [hsim₂_def, simulateQ_bind, simulateQ_query, OracleQuery.input_query,
+      OracleQuery.cont_query, id_map, StateT.run_bind, hmy_def, hf₂_def]
   set mid : OracleComp spec' (α × σ × Bool) := mx >>= f₂ with hmid_def
   have h_tri : tvDist sim₁ sim₂ ≤ tvDist sim₁ mid + tvDist mid sim₂ :=
     tvDist_triangle _ _ _
@@ -1098,7 +1098,7 @@ private theorem tvDist_simulateQ_run_query_bind_le
         Pr[= z | mx].toReal * (↑(q - 1) * ε + Pr[fun w : α × σ × Bool => w.2.2 = true |
             f₁ z].toReal) := fun z => by
     apply mul_le_mul_of_nonneg_left _ ENNReal.toReal_nonneg
-    simpa [hf₁_def, hf₂_def] using ih z.1 z.2
+    simpa only [hf₁_def, hf₂_def] using ih z.1 z.2
   have h_const_nonneg : (0 : ℝ) ≤ ↑(q - 1) * ε := mul_nonneg (Nat.cast_nonneg _) hε
   have h_first :
       tvDist sim₁ mid ≤ ↑(q - 1) * ε +
@@ -1112,7 +1112,7 @@ private theorem tvDist_simulateQ_run_query_bind_le
     have h1 : 1 ≤ q := hq_pos
     have h2 : ((q - 1 : ℕ) + 1 : ℕ) = q := Nat.sub_add_cancel h1
     have h3 : (((q - 1 : ℕ) + 1 : ℕ) : ℝ) = (q : ℝ) := by exact_mod_cast h2
-    simpa using h3
+    simpa only [Nat.cast_add, Nat.cast_one] using h3
   calc tvDist sim₁ sim₂
       ≤ tvDist sim₁ mid + tvDist mid sim₂ := h_tri
     _ ≤ (↑(q - 1) * ε + Pr[fun z : α × σ × Bool => z.2.2 = true | sim₁].toReal) + ε :=
@@ -1545,7 +1545,7 @@ lemma expectedQuerySlackStep_costly_pos
     expectedQuerySlackStep impl S ε t k qS (s, false) =
       ε s + ∑' z : spec.Range t × σ × Bool,
         Pr[= z | (impl t).run (s, false)] * k z.1 (qS - 1) z.2 := by
-  simp [expectedQuerySlackStep, hS, hqS]
+  simp only [expectedQuerySlackStep, Bool.false_eq_true, ↓reduceIte, hS, hqS]
 
 lemma expectedQuerySlackStep_free
     (impl : QueryImpl spec (StateT (σ × Bool) (OracleComp spec')))
@@ -2137,8 +2137,7 @@ lemma expectedQuerySlack_resource_le
     expectedQuerySlack impl chargedQuery (fun s => ζ + R s * β) oa qS (s, false)
       ≤ (qS : ℝ≥0∞) * ζ + (qS : ℝ≥0∞) * (R s + qS + qH) * β := by
   induction oa using OracleComp.inductionOn generalizing qS qH s with
-  | pure x =>
-      simp
+  | pure x => simp only [expectedQuerySlack_pure, zero_le]
   | query_bind t cont ih =>
       rw [isQueryBoundP_query_bind_iff] at h_qS h_qH
       obtain ⟨hcanS, hcontS⟩ := h_qS
@@ -2152,9 +2151,9 @@ lemma expectedQuerySlack_resource_le
         have hcontH' : ∀ u, OracleComp.IsQueryBoundP (cont u) growthQuery qH' := by
           by_cases hHt : growthQuery t
           · simp only [hHt, if_true] at hcontH
-            simpa [qH', hHt] using hcontH
+            simpa only [qH', hHt] using hcontH
           · simp only [hHt, if_false] at hcontH
-            simpa [qH', hHt] using hcontH
+            simpa only [qH', hHt] using hcontH
         have h_tail :
             (∑' z : spec.Range t × σ × Bool,
                 Pr[= z | (impl t).run (s, false)] *
@@ -2182,7 +2181,7 @@ lemma expectedQuerySlack_resource_le
                       have hRz := h_growth t (s, false) rfl (Or.inl hSt)
                         (u, s', false) hz
                       have hRz' : R s' ≤ R s + 1 := by
-                        simpa [hSt] using hRz
+                        simpa only [hSt] using hRz
                       have hbudget : R s' + (qS - 1 : ℕ) + qH' ≤ R s + qS + qH := by
                         by_cases hHt : growthQuery t
                         · have hqH_pos : 0 < qH := hcanH.resolve_left (· hHt)
@@ -2231,8 +2230,7 @@ lemma expectedQuerySlack_resource_le
                         mul_le_mul' (mul_le_mul' le_rfl hbudget) le_rfl
                       simpa only [add_assoc, add_left_comm, add_comm] using
                         add_le_add_left hmul (((qS - 1 : ℕ) : ℝ≥0∞) * ζ)
-                    ·
-                      simp
+                    · simp only [expectedQuerySlack_bad_eq_zero, natCast_sub, Nat.cast_one, zero_le]
                   · have hprob :
                         Pr[= z | (impl t).run (s, false)] = 0 :=
                       probOutput_eq_zero_of_not_mem_support hz
@@ -2291,9 +2289,9 @@ lemma expectedQuerySlack_resource_le
         have hcontH' : ∀ u, OracleComp.IsQueryBoundP (cont u) growthQuery qH' := by
           by_cases hHt : growthQuery t
           · simp only [hHt, if_true] at hcontH
-            simpa [qH', hHt] using hcontH
+            simpa only [qH', hHt] using hcontH
           · simp only [hHt, if_false] at hcontH
-            simpa [qH', hHt] using hcontH
+            simpa only [qH', hHt] using hcontH
         calc
           (∑' z : spec.Range t × σ × Bool,
               Pr[= z | (impl t).run (s, false)] *
@@ -2313,10 +2311,10 @@ lemma expectedQuerySlack_resource_le
                     refine hih.trans ?_
                     have hRz : R s' ≤ R s + if growthQuery t then (1 : ℝ≥0∞) else 0 := by
                       by_cases hHt : growthQuery t
-                      · simpa [hHt] using
+                      · simpa only [hHt] using
                           h_growth t (s, false) rfl (Or.inr hHt) (u, s', false) hz
-                      · simpa [hHt] using
-                          h_free t (s, false) rfl hSt hHt (u, s', false) hz
+                      · simpa only [hHt, ↓reduceIte, add_zero] using
+                        h_free t (s, false) rfl hSt hHt (u, s', false) hz
                     have hbudget : R s' + qS + qH' ≤ R s + qS + qH := by
                       by_cases hHt : growthQuery t
                       · have hqH_pos : 0 < qH := hcanH.resolve_left (· hHt)
@@ -2326,7 +2324,7 @@ lemma expectedQuerySlack_resource_le
                           exact_mod_cast hnat
                         simp only [qH', hHt, if_true]
                         have hRz' : R s' ≤ R s + 1 := by
-                          simpa [hSt, hHt] using hRz
+                          simpa only [hSt, hHt] using hRz
                         calc
                           R s' + qS + (qH - 1 : ℕ)
                               ≤ (R s + 1) + qS + (qH - 1 : ℕ) := by
@@ -2339,7 +2337,7 @@ lemma expectedQuerySlack_resource_le
                                     simp only [add_assoc, add_left_comm, add_comm], hqH_cast]
                       · simp only [qH', hHt, if_false]
                         have hRz' : R s' ≤ R s := by
-                          simpa [hSt, hHt] using hRz
+                          simpa only [hHt, ↓reduceIte, add_zero] using hRz
                         gcongr
                     have hmul :
                         (qS : ℝ≥0∞) * (R s' + qS + qH') * β
@@ -2347,8 +2345,7 @@ lemma expectedQuerySlack_resource_le
                       mul_le_mul' (mul_le_mul' le_rfl hbudget) le_rfl
                     simpa only [add_assoc, add_left_comm, add_comm] using
                       add_le_add_left hmul ((qS : ℝ≥0∞) * ζ)
-                  ·
-                    simp
+                  · simp only [expectedQuerySlack_bad_eq_zero, zero_le]
                 · have hprob :
                       Pr[= z | (impl t).run (s, false)] = 0 :=
                     probOutput_eq_zero_of_not_mem_support hz
