@@ -784,8 +784,8 @@ private lemma probEvent_output_bad_eq
     (oa : OracleComp spec α) (s₀ : σ) :
     Pr[fun z : α × σ × Bool => z.2.2 = true | (simulateQ impl₁ oa).run (s₀, false)] =
       Pr[fun z : α × σ × Bool => z.2.2 = true | (simulateQ impl₂ oa).run (s₀, false)] := by
-  set sim₁ := (simulateQ impl₁ oa).run (s₀, false)
-  set sim₂ := (simulateQ impl₂ oa).run (s₀, false)
+  set sim₁ : OracleComp spec (α × σ × Bool) := (simulateQ impl₁ oa).run (s₀, false)
+  set sim₂ : OracleComp spec (α × σ × Bool) := (simulateQ impl₂ oa).run (s₀, false)
   have h₁ := probEvent_compl sim₁ (fun z : α × σ × Bool => z.2.2 = true)
   have h₂ := probEvent_compl sim₂ (fun z : α × σ × Bool => z.2.2 = true)
   simp only [NeverFail.probFailure_eq_zero, tsub_zero] at h₁ h₂
@@ -796,10 +796,12 @@ private lemma probEvent_output_bad_eq
     refine tsum_congr ?_
     rintro ⟨a, s, b⟩
     by_cases hb : b = true
-    · simp [hb]
-    · have hb' : b = false := by cases b <;> simp_all
+    · simp only [hb, not_true_eq_false, ↓reduceIte]
+    · have hb' : b = false := by cases b <;> simp_all only [Prod.forall, Bool.forall_bool,
+      Bool.false_eq_true, imp_false, implies_true, and_true, forall_eq, Bool.not_eq_true,
+      not_false_eq_true]
       subst hb'
-      simpa using
+      simpa only using
         probOutput_simulateQ_run_eq_of_not_output_bad impl₁ impl₂ h_agree_good
           h_mono₁ h_mono₂ oa s₀ a s
   have hne₁ : Pr[fun z : α × σ × Bool => ¬z.2.2 = true | sim₁] ≠ ⊤ :=
@@ -838,11 +840,12 @@ theorem tvDist_simulateQ_le_probEvent_output_bad
       ≤ Pr[fun z : α × σ × Bool => z.2.2 = true |
           (simulateQ impl₁ oa).run (s₀, false)].toReal := by
   classical
-  set sim₁ := (simulateQ impl₁ oa).run (s₀, false)
-  set sim₂ := (simulateQ impl₂ oa).run (s₀, false)
+  set sim₁ : OracleComp spec (α × σ × Bool) := (simulateQ impl₁ oa).run (s₀, false)
+  set sim₂ : OracleComp spec (α × σ × Bool) := (simulateQ impl₂ oa).run (s₀, false)
   have h_eq : ∀ (z : α × σ × Bool), ¬(z.2.2 = true) → Pr[= z | sim₁] = Pr[= z | sim₂] := by
     rintro ⟨x, s, b⟩ hb
-    have hb' : b = false := by cases b <;> simp_all
+    have hb' : b = false := by cases b <;> simp_all only [Prod.forall, Bool.forall_bool,
+      Bool.false_eq_true, imp_false, implies_true, and_true, forall_eq, not_true_eq_false]
     subst hb'
     exact probOutput_simulateQ_run_eq_of_not_output_bad impl₁ impl₂ h_agree_good
       h_mono₁ h_mono₂ oa s₀ x s
@@ -858,7 +861,7 @@ theorem tvDist_simulateQ_le_probEvent_output_bad
       tvDist ((simulateQ impl₁ oa).run' (s₀, false))
           ((simulateQ impl₂ oa).run' (s₀, false))
         ≤ tvDist sim₁ sim₂ := by
-    simpa [sim₁, sim₂, StateT.run'] using
+    simpa only [sim₁, sim₂, StateT.run'] using
       (tvDist_map_le (m := OracleComp spec) (α := α × σ × Bool) (β := α) Prod.fst sim₁ sim₂)
   exact le_trans h_map h_tv_joint
 
@@ -1552,7 +1555,7 @@ lemma expectedQuerySlackStep_free
     expectedQuerySlackStep impl S ε t k qS (s, false) =
       ∑' z : spec.Range t × σ × Bool,
         Pr[= z | (impl t).run (s, false)] * k z.1 qS z.2 := by
-  simp [expectedQuerySlackStep, hS]
+  simp only [expectedQuerySlackStep, Bool.false_eq_true, ↓reduceIte, hS]
 
 /-! #### Pointwise monotonicity of `expectedQuerySlack` in `ε`
 
