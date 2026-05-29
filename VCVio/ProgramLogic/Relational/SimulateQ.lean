@@ -2142,18 +2142,14 @@ lemma expectedQuerySlack_resource_le
       rw [isQueryBoundP_query_bind_iff] at h_qS h_qH
       obtain ⟨hcanS, hcontS⟩ := h_qS
       obtain ⟨hcanH, hcontH⟩ := h_qH
+      let qH' : ℕ := if growthQuery t then qH - 1 else qH
+      have hcontH' : ∀ u, OracleComp.IsQueryBoundP (cont u) growthQuery qH' := by
+        by_cases hHt : growthQuery t <;> simpa only [hHt, qH'] using hcontH
       by_cases hSt : chargedQuery t
       · simp only [hSt, if_true] at hcontS
         have hqS_pos : 0 < qS := hcanS.resolve_left (· hSt)
         rw [expectedQuerySlack_query_bind,
           expectedQuerySlackStep_costly_pos _ _ _ _ _ _ _ hSt hqS_pos]
-        let qH' := if growthQuery t then qH - 1 else qH
-        have hcontH' : ∀ u, OracleComp.IsQueryBoundP (cont u) growthQuery qH' := by
-          by_cases hHt : growthQuery t
-          · simp only [hHt, if_true] at hcontH
-            simpa only [qH', hHt] using hcontH
-          · simp only [hHt, if_false] at hcontH
-            simpa only [qH', hHt] using hcontH
         have h_tail :
             (∑' z : spec.Range t × σ × Bool,
                 Pr[= z | (impl t).run (s, false)] *
@@ -2285,13 +2281,6 @@ lemma expectedQuerySlack_resource_le
       · simp only [hSt, if_false] at hcontS
         rw [expectedQuerySlack_query_bind,
           expectedQuerySlackStep_free _ _ _ _ _ _ _ hSt]
-        let qH' := if growthQuery t then qH - 1 else qH
-        have hcontH' : ∀ u, OracleComp.IsQueryBoundP (cont u) growthQuery qH' := by
-          by_cases hHt : growthQuery t
-          · simp only [hHt, if_true] at hcontH
-            simpa only [qH', hHt] using hcontH
-          · simp only [hHt, if_false] at hcontH
-            simpa only [qH', hHt] using hcontH
         calc
           (∑' z : spec.Range t × σ × Bool,
               Pr[= z | (impl t).run (s, false)] *
