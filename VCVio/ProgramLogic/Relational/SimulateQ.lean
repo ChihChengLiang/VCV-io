@@ -2148,6 +2148,8 @@ lemma expectedQuerySlack_resource_le
       by_cases hSt : chargedQuery t
       · simp only [hSt, if_true] at hcontS
         have hqS_pos : 0 < qS := hcanS.resolve_left (· hSt)
+        have hqS_cast : (((qS - 1 : ℕ) : ℝ≥0∞) + 1) = (qS : ℝ≥0∞) := by
+          exact_mod_cast Nat.sub_add_cancel (hqS_pos)
         rw [expectedQuerySlack_query_bind,
           expectedQuerySlackStep_costly_pos _ _ _ _ _ _ _ hSt hqS_pos]
         have h_tail :
@@ -2170,8 +2172,7 @@ lemma expectedQuerySlack_resource_le
                   · rcases z with ⟨u, s', bad'⟩
                     gcongr
                     cases bad'
-                    · have hih := ih u (qS := qS - 1) (qH := qH')
-                        (hcontS u) (hcontH' u) s'
+                    · have hih := ih u (qS := qS - 1) (qH := qH') (hcontS u) (hcontH' u) s'
                       refine hih.trans ?_
                       have hRz := h_growth t (s, false) rfl (Or.inl hSt)
                         (u, s', false) hz
@@ -2179,16 +2180,7 @@ lemma expectedQuerySlack_resource_le
                         simpa only [hSt] using hRz
                       have hbudget : R s' + (qS - 1 : ℕ) + qH' ≤ R s + qS + qH := by
                         by_cases hHt : growthQuery t
-                        · have hqH_pos : 0 < qH := hcanH.resolve_left (· hHt)
-                          have hqH_cast :
-                              (((qH - 1 : ℕ) : ℝ≥0∞) + 1) = (qH : ℝ≥0∞) := by
-                            have hnat : (qH - 1) + 1 = qH := Nat.sub_add_cancel hqH_pos
-                            exact_mod_cast hnat
-                          have hqS_cast :
-                              (((qS - 1 : ℕ) : ℝ≥0∞) + 1) = (qS : ℝ≥0∞) := by
-                            have hnat : (qS - 1) + 1 = qS := Nat.sub_add_cancel hqS_pos
-                            exact_mod_cast hnat
-                          simp only [qH', hHt, if_true]
+                        · simp only [qH', hHt, if_true]
                           calc
                             R s' + (qS - 1 : ℕ) + (qH - 1 : ℕ)
                                 ≤ (R s + 1) + (qS - 1 : ℕ) + (qH - 1 : ℕ) := by
@@ -2202,34 +2194,22 @@ lemma expectedQuerySlack_resource_le
                             _ ≤ R s + qS + qH := by
                                   gcongr
                                   exact_mod_cast Nat.sub_le qH 1
-                        · have hqS_cast :
-                              (((qS - 1 : ℕ) : ℝ≥0∞) + 1) = (qS : ℝ≥0∞) := by
-                            have hnat : (qS - 1) + 1 = qS := Nat.sub_add_cancel hqS_pos
-                            exact_mod_cast hnat
-                          simp only [qH', hHt, if_false]
+                        · simp only [qH', hHt, if_false]
                           calc
-                            R s' + (qS - 1 : ℕ) + qH
-                                ≤ (R s + 1) + (qS - 1 : ℕ) + qH := by
-                                  gcongr
+                            R s' + (qS - 1 : ℕ) + qH ≤ (R s + 1) + (qS - 1 : ℕ) + qH := by gcongr
                             _ = R s + qS + qH := by
-                                  rw [show (R s + 1) + ((qS - 1 : ℕ) : ℝ≥0∞) +
-                                      (qH : ℝ≥0∞) =
+                                  rw [show (R s + 1) + ((qS - 1 : ℕ) : ℝ≥0∞) + (qH : ℝ≥0∞) =
                                     R s + (((qS - 1 : ℕ) : ℝ≥0∞) + 1) +
                                       (qH : ℝ≥0∞) by
                                       simp only [add_assoc, add_left_comm, add_comm], hqS_cast]
                       have hmul :
-                          ((qS - 1 : ℕ) : ℝ≥0∞) *
-                              (R s' + (qS - 1 : ℕ) + qH') * β
-                            ≤ ((qS - 1 : ℕ) : ℝ≥0∞) *
-                                (R s + qS + qH) * β :=
+                          ((qS - 1 : ℕ) : ℝ≥0∞) * (R s' + (qS - 1 : ℕ) + qH') * β
+                            ≤ ((qS - 1 : ℕ) : ℝ≥0∞) * (R s + qS + qH) * β :=
                         mul_le_mul' (mul_le_mul' le_rfl hbudget) le_rfl
                       simpa only [add_assoc, add_left_comm, add_comm] using
                         add_le_add_left hmul (((qS - 1 : ℕ) : ℝ≥0∞) * ζ)
                     · simp only [expectedQuerySlack_bad_eq_zero, natCast_sub, Nat.cast_one, zero_le]
-                  · have hprob :
-                        Pr[= z | (impl t).run (s, false)] = 0 :=
-                      probOutput_eq_zero_of_not_mem_support hz
-                    rw [hprob, zero_mul, zero_mul]
+                  · rw [probOutput_eq_zero_of_not_mem_support hz, zero_mul, zero_mul]
               _ = (∑' z : spec.Range t × σ × Bool,
                     Pr[= z | (impl t).run (s, false)]) *
                   ((qS - 1 : ℕ) * ζ + (qS - 1 : ℕ) * (R s + qS + qH) * β) := by
@@ -2259,15 +2239,9 @@ lemma expectedQuerySlack_resource_le
                                 rw [hB]
                                 exact (le_self_add : R s ≤ R s + (qS : ℝ≥0∞)).trans
                                   le_self_add
-                      _ = ((1 : ℝ≥0∞) + ((qS - 1 : ℕ) : ℝ≥0∞)) * ζ +
-                            ((1 : ℝ≥0∞) + ((qS - 1 : ℕ) : ℝ≥0∞)) * B * β := by
-                                ring_nf
-                      _ = (qS : ℝ≥0∞) * ζ + (qS : ℝ≥0∞) * B * β := by
-                                rw [show 1 + ((qS - 1 : ℕ) : ℝ≥0∞) = qS by
-                                    rw [add_comm]; exact_mod_cast Nat.sub_add_cancel hqS_pos]
-                      _ = (qS : ℝ≥0∞) * ζ +
-                            (qS : ℝ≥0∞) * (R s + qS + qH) * β := by
-                                rw [hB]
+                      _ = (((qS - 1 : ℕ) : ℝ≥0∞) + (1 : ℝ≥0∞)) * ζ +
+                            (((qS - 1 : ℕ) : ℝ≥0∞) + (1 : ℝ≥0∞)) * B * β := by ring_nf
+                      _ = (qS : ℝ≥0∞) * ζ + (qS : ℝ≥0∞) * B * β := by rw [hqS_cast]
       · simp only [hSt, if_false] at hcontS
         rw [expectedQuerySlack_query_bind,
           expectedQuerySlackStep_free _ _ _ _ _ _ _ hSt]
