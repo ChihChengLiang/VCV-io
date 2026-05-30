@@ -185,15 +185,17 @@ when `z = y + c·s₁` and the key pair comes from `keyGenFromSeed`.
 This is the core identity underlying both signing correctness and the security proof.
 It follows from `t = A·s₁ + s₂` (key generation), `t₁·2^d + t₀ = t` (Power2Round),
 and NTT linearity. -/
-theorem keyGenFromSeed_wApprox_eq
+theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
     (h_laws : Primitives.Laws prims nttOps)
-    (seed : Bytes 32) :
-    let (pk, sk) := keyGenFromSeed p prims nttOps seed
+    (seed : Bytes 32)
+    (hkeygen : keyGenFromSeed p prims nttOps seed = (pk, sk)) :
     ∀ (c : Rq) (y : RqVec p.l),
       computeWApprox p prims nttOps (prims.expandA pk.rho) c
         (y + nttOps.coeffScalarVecMul c sk.s1) pk.t1 =
       nttOps.coeffMatVecMul (prims.expandA pk.rho) y - nttOps.coeffScalarVecMul c sk.s2 +
         nttOps.coeffScalarVecMul c sk.t0 := by
+  intro c y
+
   sorry
 
 end MLDSA
