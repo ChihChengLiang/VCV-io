@@ -82,8 +82,7 @@ theorem idsWithAbort_complete' :
   classical
   intro pk sk hvalid
   rw [probOutput_eq_one_iff_forall]
-  refine ⟨HasEvalPMF.probFailure_eq_zero _, ?_⟩
-  intro b hb
+  refine ⟨HasEvalPMF.probFailure_eq_zero _, fun b hb => ?_⟩
   rw [support_bind] at hb
   simp only [Set.mem_iUnion] at hb
   obtain ⟨t?, ht?, hb⟩ := hb
