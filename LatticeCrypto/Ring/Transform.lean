@@ -99,8 +99,8 @@ Bundles the forward and inverse transforms (`toHat` / `fromHat`) together with
 pointwise transform-domain arithmetic (`zeroHat`, `addHat`, `subHat`, `mulHat`).
 Concrete NTT modules provide executable instances; `TransformOps.Laws` certifies
 that the transform is a ring isomorphism. -/
-structure TransformOps {Coeff : Type u} [CommRing Coeff]
-    (ring : NegacyclicRing Coeff) (Hat : Type v) where
+class TransformOps {Coeff : Type u} [CommRing Coeff]
+    (ring : NegacyclicRing Coeff) (Hat : outParam (Type v)) where
   toHat : ring.Poly → Hat
   fromHat : Hat → ring.Poly
   zeroHat : Hat
@@ -190,6 +190,22 @@ def coeffMatTransposeVecMul {rows cols : Nat}
 @[simp] theorem unhatVec_get {k : Nat} (v : PolyVec Hat k) (i : Fin k) :
     (ops.unhatVec v).get i = ops.fromHat (v.get i) :=
   Vector.get_map v ops.fromHat i
+
+/-! ### Notation Instances -/
+
+/-- Coefficient-domain scalar-vector multiplication as `HSMul`, enabling `c • v` syntax.
+
+Requires a `TransformOps` instance in scope (e.g., `[nttOps : NTTRingOps]`). -/
+instance instHSMulCoeffScalar [inst : TransformOps ring Hat] {k : Nat} :
+    HSMul ring.Poly (PolyVec ring.Poly k) (PolyVec ring.Poly k) where
+  hSMul := inst.coeffScalarVecMul
+
+/-- Coefficient-domain matrix-vector multiplication as `HMul`, enabling `A * v` syntax.
+
+Requires a `TransformOps` instance in scope (e.g., `[nttOps : NTTRingOps]`). -/
+instance instHMulCoeffMatVec [inst : TransformOps ring Hat] {rows cols : Nat} :
+    HMul (PolyMatrix Hat rows cols) (PolyVec ring.Poly cols) (PolyVec ring.Poly rows) where
+  hMul := inst.coeffMatVecMul
 
 /-- Algebraic laws asserting that a `TransformOps` instance is a ring isomorphism.
 
