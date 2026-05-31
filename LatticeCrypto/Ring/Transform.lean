@@ -223,6 +223,36 @@ structure Laws (ops : TransformOps ring Hat) : Prop where
   toHat_sub : ∀ f g : ring.Poly,
     ops.toHat (ring.sub f g) = ops.subHat (ops.toHat f) (ops.toHat g)
 
+-- From toHat_add componentwise
+theorem hatVec_add (laws : Laws ops) {k} (u v : PolyVec ring.Poly k) :
+    ops.hatVec (u + v) = Vector.zipWith ops.addHat (ops.hatVec u) (ops.hatVec v) := by
+  refine Vector.ext fun i _ => ?_
+  simp only [hatVec, Vector.getElem_map, Vector.getElem_add,
+    Vector.zipWith_map, Vector.getElem_zipWith]
+  exact laws.toHat_add u[i] v[i]
+
+-- From toHat_sub componentwise
+theorem hatVec_sub (laws : Laws ops) {k} (u v : PolyVec ring.Poly k) :
+    ops.hatVec (u - v) = Vector.zipWith ops.subHat (ops.hatVec u) (ops.hatVec v):= by
+  refine Vector.ext fun i _ => ?_
+  simp only [hatVec, Vector.getElem_map, Vector.getElem_sub,
+    Vector.zipWith_map, Vector.getElem_zipWith]
+  exact laws.toHat_sub u[i] v[i]
+
+-- Linearity of dot
+theorem dot_add_right (laws : Laws ops) {k} (row u v : PolyVec Hat k) :
+    ops.dot row (Vector.zipWith ops.addHat u v) =
+    ops.addHat (ops.dot row u) (ops.dot row v) := by
+
+  sorry
+
+-- Linearity of matVecMul
+theorem matVecMul_add (laws : Laws ops) {r c} (A : PolyMatrix Hat r c) (u v : PolyVec Hat c) :
+    ops.matVecMul A (Vector.zipWith ops.addHat u v) =
+    Vector.zipWith ops.addHat (ops.matVecMul A u) (ops.matVecMul A v) := by
+
+  sorry
+
 end TransformOps
 
 end LatticeCrypto
