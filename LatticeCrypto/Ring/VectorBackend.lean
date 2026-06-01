@@ -173,6 +173,17 @@ omit [CommRing Coeff] in
   change (0 : Vector Coeff n).get i = 0
   simp [Vector.get]
 
+@[simp] theorem vectorNegacyclicRing_mul :
+    (vectorNegacyclicRing Coeff n).mul = negacyclicMulPure (vectorKernel Coeff n) := rfl
+
+theorem vectorRing_mul_add_right (f g h : Poly Coeff n) :
+    (vRing Coeff n).mul f (g + h) = (vRing Coeff n).mul f g + (vRing Coeff n).mul f h := by
+  apply PolyBackend.ext_coeff; intro k
+  simp only [NegacyclicRing.coeff_add, vectorNegacyclicRing_mul,
+             negacyclicMulPure_coeff, negacyclicConvCoeff]
+  rw [← Finset.sum_add_distrib]; congr 1; ext ij
+  split_ifs <;> ring
+
 @[simp] theorem vectorRing_add_get (f g : Poly Coeff n) (i : Fin n) :
     ((vectorNegacyclicRing Coeff n).add f g).get i = f.get i + g.get i :=
   congr_fun (Poly.toPi_ofPi (fun j => f.get j + g.get j)) i

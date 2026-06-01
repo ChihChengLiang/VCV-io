@@ -242,4 +242,12 @@ def negacyclicMulPure {Coeff : Type u} [Ring Coeff]
   backend.build fun k =>
     negacyclicConvCoeff (backend.coeff f) (backend.coeff g) k
 
+/-- The `i`-th coefficient of `negacyclicMulPure k f g` equals `negacyclicConvCoeff`. -/
+@[simp] theorem negacyclicMulPure_coeff {Coeff : Type u} [Ring Coeff]
+    {backend : PolyBackend.{u, u} Coeff} (kernel : PolyKernel Coeff backend)
+    (f g : backend.Poly) (i : Fin backend.degree) :
+    backend.coeff (negacyclicMulPure kernel f g) i =
+      negacyclicConvCoeff (backend.coeff f) (backend.coeff g) i :=
+  backend.coeff_build _ i
+
 end LatticeCrypto

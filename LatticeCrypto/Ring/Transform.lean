@@ -222,6 +222,8 @@ structure Laws (ops : TransformOps ring Hat) : Prop where
     ops.toHat (ring.add f g) = ops.addHat (ops.toHat f) (ops.toHat g)
   toHat_sub : ∀ f g : ring.Poly,
     ops.toHat (ring.sub f g) = ops.subHat (ops.toHat f) (ops.toHat g)
+  mul_add : ∀ a b c : Hat,
+    ops.mulHat a (ops.addHat b c) = ops.addHat (ops.mulHat a b) (ops.mulHat a c)
 
 -- From toHat_add componentwise
 theorem hatVec_add (laws : Laws ops) {k} (u v : PolyVec ring.Poly k) :

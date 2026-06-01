@@ -235,8 +235,33 @@ theorem ntt_sub (f g : Rq) : ntt (f - g) = ntt f - ntt g := by
   apply LatticeCrypto.TransformPoly.ext
   simpa using ntt_sub_toRq f g
 
+private theorem invNTT_add (g h : Tq) : invNTT (g + h) = invNTT g + invNTT h := by
+  apply ntt_injective
+  rw [ntt_invNTT, ntt_add, ntt_invNTT, ntt_invNTT]
+
+set_option maxRecDepth 1000 in
+private theorem negacyclicMul_add_right (a b c : Rq) :
+    negacyclicMul a (b + c) = negacyclicMul a b + negacyclicMul a c := by
+  apply LatticeCrypto.NegacyclicRing.poly_ext; intro k
+  -- exact uses default transparency, bridging negacyclicMul → negacyclicMulPure polyKernel
+  have h_lhs : coeffRing.backend.coeff (negacyclicMul a (b + c)) k =
+      LatticeCrypto.negacyclicConvCoeff (polyBackend.coeff a) (polyBackend.coeff (b + c)) k :=
+    LatticeCrypto.negacyclicMulPure_coeff polyKernel a (b + c) k
+  have h_b : coeffRing.backend.coeff (negacyclicMul a b) k =
+      LatticeCrypto.negacyclicConvCoeff (polyBackend.coeff a) (polyBackend.coeff b) k :=
+    LatticeCrypto.negacyclicMulPure_coeff polyKernel a b k
+  have h_c : coeffRing.backend.coeff (negacyclicMul a c) k =
+      LatticeCrypto.negacyclicConvCoeff (polyBackend.coeff a) (polyBackend.coeff c) k :=
+    LatticeCrypto.negacyclicMulPure_coeff polyKernel a c k
+  simp only [LatticeCrypto.NegacyclicRing.coeff_add, h_lhs, h_b, h_c,
+             LatticeCrypto.negacyclicConvCoeff]
+  rw [← Finset.sum_add_distrib]; congr 1; ext ij
+  simp only [LatticeCrypto.NegacyclicRing.coeff_add]
+  split_ifs <;> ring
+
+
 /-- Concrete `NTTRingOps` instance for ML-DSA. -/
-def concreteNTTRingOps : NTTRingOps where
+@[reducible] def concreteNTTRingOps : NTTRingOps where
   toHat := ntt
   fromHat := invNTT
   zeroHat := 0
@@ -251,12 +276,15 @@ noncomputable def concreteNTTRingLaws : NTTRingLaws concreteNTTRingOps where
   toHat_zero := by
     apply LatticeCrypto.TransformPoly.ext
     exact LatticeCrypto.NTTCert.applyMatrix_zero (backend := polyBackend) nttMatrix hzero_rq
-  toHat_mul := by
-    intro f g
-    simp [concreteNTTRingOps, multiplyNTTs, invNTT_ntt]
-  toHat_add := by
-    intro f g; exact ntt_add f g
-  toHat_sub := by
-    intro f g; exact ntt_sub f g
+  toHat_mul f g := by
+    change ntt (negacyclicMul f g) = multiplyNTTs (ntt f) (ntt g)
+    simp only [multiplyNTTs, invNTT_ntt]
+  toHat_add f g := ntt_add f g
+  toHat_sub f g := ntt_sub f g
+  mul_add f g h := by
+    change multiplyNTTs f (g + h) = multiplyNTTs f g + multiplyNTTs f h
+    simp only [multiplyNTTs, invNTT_add]
+    rw [← ntt_add]
+    exact congrArg ntt (negacyclicMul_add_right _ _ _)
 
 end MLDSA.Concrete

@@ -193,6 +193,34 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
       computeWApprox p prims (prims.expandA pk.rho) c (y + c • sk.s1) pk.t1 =
       (prims.expandA pk.rho) * y - c • sk.s2 + c • sk.t0 := by
   intro c y
+  set aHat := prims.expandA pk.rho
+  simp only [computeWApprox]
+  have h_kg : aHat * sk.s1 + sk.s2 = prims.power2RoundShiftVec pk.t1 + sk.t0 := by
+    have := hkeygen
+    simp [keyGenFromSeed] at this
+
+    sorry
+  have hatVec_add : ∀ {k} (u v : RqVec k),
+    nttOps.hatVec (u + v) = Vector.zipWith nttOps.addHat (nttOps.hatVec u) (nttOps.hatVec v) := by
+    intro k u v
+    apply Vector.ext; intro i hi
+    simp only [Vector.getElem_zipWith, LatticeCrypto.TransformOps.hatVec, Vector.getElem_map]
+    exact h_laws.transform.toHat_add u[i] v[i]
+
+    sorry
+
+  have matVecMul_add : ∀ {r c} (A : TqMatrix r c) u v,
+    nttOps.matVecMul A (Vector.zipWith nttOps.addHat u v) =
+    Vector.zipWith nttOps.addHat (nttOps.matVecMul A u) (nttOps.matVecMul A v) := by
+    sorry
+
+  -- LHS = unhatVec(Â·hatVec(y + c•s₁) - ĉ·hatVec(t₁·2^d))
+  --   = unhatVec(Â·hatVec(y) + ĉ·Â·hatVec(s₁) - ĉ·hatVec(t₁·2^d))
+  --   [use key gen: Â·hatVec(s₁) = hatVec(t₁·2^d + t₀ - s₂)]
+  --   = unhatVec(Â·hatVec(y) + ĉ·hatVec(t₀ - s₂))
+  --   = Â*y + c•t₀ - c•s₂
+  --   = RHS
+
 
   sorry
 
