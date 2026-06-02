@@ -176,11 +176,34 @@ omit [CommRing Coeff] in
 @[simp] theorem vectorNegacyclicRing_mul :
     (vectorNegacyclicRing Coeff n).mul = negacyclicMulPure (vectorKernel Coeff n) := rfl
 
+@[simp] theorem vectorNegacyclicRing_backend :
+    (vectorNegacyclicRing Coeff n).backend = vectorBackend Coeff n := rfl
+
+/-- Coefficient of a sum through the concrete vector backend (`Vector.instAdd`).
+Paired with `vectorNegacyclicRing_backend` so that both variants of `+` on
+`Poly Coeff n` are handled after the backend is normalised. -/
+@[simp] theorem vectorBackend_add_coeff (f g : Poly Coeff n) (i : Fin n) :
+    (vectorBackend Coeff n).coeff (f + g) i =
+      (vectorBackend Coeff n).coeff f i + (vectorBackend Coeff n).coeff g i := by
+  simp only [vectorBackend_coeff]
+  exact Vector.getElem_add f g i.val i.isLt
+
+/-- Coefficient of a ring-`+` sum through the vector backend, where `+` comes from
+`NegacyclicRing.instAddPoly`. Fires in downstream files where the carrier is spelled
+as `(vectorNegacyclicRing ...).Poly` rather than `Poly Coeff n`. -/
+@[simp] theorem vectorBackend_ring_add_coeff (f g : (vectorNegacyclicRing Coeff n).Poly)
+    (i : Fin n) :
+    (vectorBackend Coeff n).coeff (f + g) i =
+      (vectorBackend Coeff n).coeff f i + (vectorBackend Coeff n).coeff g i :=
+  NegacyclicRing.coeff_add (vectorNegacyclicRing Coeff n) f g i
+
 theorem vectorRing_mul_add_right (f g h : Poly Coeff n) :
     (vRing Coeff n).mul f (g + h) = (vRing Coeff n).mul f g + (vRing Coeff n).mul f h := by
   apply PolyBackend.ext_coeff; intro k
-  simp only [NegacyclicRing.coeff_add, vectorNegacyclicRing_mul,
-             negacyclicMulPure_coeff, negacyclicConvCoeff]
+  -- Split the outer ring addition first, before vectorNegacyclicRing_backend fires.
+  simp only [NegacyclicRing.coeff_add]
+  simp only [vectorNegacyclicRing_mul, vectorNegacyclicRing_backend,
+             vectorBackend_add_coeff, negacyclicMulPure_coeff, negacyclicConvCoeff]
   rw [← Finset.sum_add_distrib]; congr 1; ext ij
   split_ifs <;> ring
 

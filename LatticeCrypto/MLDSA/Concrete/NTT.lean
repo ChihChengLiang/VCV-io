@@ -239,24 +239,17 @@ private theorem invNTT_add (g h : Tq) : invNTT (g + h) = invNTT g + invNTT h := 
   apply ntt_injective
   rw [ntt_invNTT, ntt_add, ntt_invNTT, ntt_invNTT]
 
-set_option maxRecDepth 1000 in
+private theorem negacyclicMul_coeff (a b : Rq) (k : Fin ringDegree) :
+    polyBackend.coeff (negacyclicMul a b) k =
+      LatticeCrypto.negacyclicConvCoeff (polyBackend.coeff a) (polyBackend.coeff b) k :=
+  LatticeCrypto.negacyclicMulPure_coeff polyKernel a b k
+
 private theorem negacyclicMul_add_right (a b c : Rq) :
     negacyclicMul a (b + c) = negacyclicMul a b + negacyclicMul a c := by
   apply LatticeCrypto.NegacyclicRing.poly_ext; intro k
-  -- exact uses default transparency, bridging negacyclicMul → negacyclicMulPure polyKernel
-  have h_lhs : coeffRing.backend.coeff (negacyclicMul a (b + c)) k =
-      LatticeCrypto.negacyclicConvCoeff (polyBackend.coeff a) (polyBackend.coeff (b + c)) k :=
-    LatticeCrypto.negacyclicMulPure_coeff polyKernel a (b + c) k
-  have h_b : coeffRing.backend.coeff (negacyclicMul a b) k =
-      LatticeCrypto.negacyclicConvCoeff (polyBackend.coeff a) (polyBackend.coeff b) k :=
-    LatticeCrypto.negacyclicMulPure_coeff polyKernel a b k
-  have h_c : coeffRing.backend.coeff (negacyclicMul a c) k =
-      LatticeCrypto.negacyclicConvCoeff (polyBackend.coeff a) (polyBackend.coeff c) k :=
-    LatticeCrypto.negacyclicMulPure_coeff polyKernel a c k
-  simp only [LatticeCrypto.NegacyclicRing.coeff_add, h_lhs, h_b, h_c,
+  simp only [LatticeCrypto.NegacyclicRing.coeff_add, negacyclicMul_coeff,
              LatticeCrypto.negacyclicConvCoeff]
   rw [← Finset.sum_add_distrib]; congr 1; ext ij
-  simp only [LatticeCrypto.NegacyclicRing.coeff_add]
   split_ifs <;> ring
 
 
