@@ -200,33 +200,37 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
     have := hkeygen
     simp [keyGenFromSeed] at this
     obtain ⟨hpk, hsk⟩ := this
+    have hrho : pk.rho = (prims.expandSeed seed).1 :=
+      congr_arg PublicKey.rho hpk.symm
     have hs1 : sk.s1 = (prims.expandS (prims.expandSeed seed).2.1).1 :=
       congr_arg SecretKey.s1 hsk.symm
     have hs2 : sk.s2 = (prims.expandS (prims.expandSeed seed).2.1).2 :=
       congr_arg SecretKey.s2 hsk.symm
     have ht0 : sk.t0 = (prims.power2RoundVec (aHat * sk.s1 + sk.s2)).2 := by
-      rw [hs1, hs2]; exact congr_arg PublicKey.t1 hpk.symm
+      rw [hs1, hs2, show aHat = prims.expandA (prims.expandSeed seed).1 from by
+        simp [aHat, hrho]]
+      exact congr_arg SecretKey.t0 hsk.symm
     have ht1 : pk.t1 = (prims.power2RoundVec (aHat * sk.s1 + sk.s2)).1 := by
-      rw [hs1, hs2]; exact congr_arg PublicKey.t1 hpk.symm
+      rw [hs1, hs2, show aHat = prims.expandA (prims.expandSeed seed).1 from by
+        simp [aHat, hrho]]
+      exact congr_arg PublicKey.t1 hpk.symm
     -- now use the vector power2Round roundtrip
     rw [ht1, ht0]
     apply Vector.ext; intro i hi
     simp only [Primitives.power2RoundShiftVec, Primitives.power2RoundVec, Vector.map_map]
     change (aHat * sk.s1 + sk.s2)[i] =
       (Vector.map (prims.power2RoundShift ∘ Prod.fst ∘ prims.power2Round) (aHat * sk.s1 + sk.s2) +
-      Vector.map (Prod.snd ∘ prims.power2Round) (aHat * sk.s1 + sk.s2))[i]
-    have h_split : (Vector.map (prims.power2RoundShift ∘ Prod.fst ∘ prims.power2Round) (aHat * sk.s1 + sk.s2) +
-        Vector.map (Prod.snd ∘ prims.power2Round) (aHat * sk.s1 + sk.s2)).get ⟨i, hi⟩ =
-        (Vector.map (prims.power2RoundShift ∘ Prod.fst ∘ prims.power2Round) (aHat * sk.s1 + sk.s2)).get ⟨i, hi⟩ +
-        (Vector.map (Prod.snd ∘ prims.power2Round) (aHat * sk.s1 + sk.s2)).get ⟨i, hi⟩ := by
-      have : (Vector.ofFn (_ + _)).get ⟨i, hi⟩ = _ := by simp [Vector.get_ofFn, Pi.add_apply]
+      Vector.map (Prod.snd ∘ prims.power2Round) (aHat * sk.s1 + sk.s2)).get ⟨i, hi⟩
+    set A := Vector.map (prims.power2RoundShift ∘ Prod.fst ∘ prims.power2Round) (aHat * sk.s1 + sk.s2)
+    set B := Vector.map (Prod.snd ∘ prims.power2Round) (aHat * sk.s1 + sk.s2)
+    have h_split : (A + B).get ⟨i, hi⟩ = A.get ⟨i, hi⟩ + B.get ⟨i, hi⟩ := by
+      have : (Vector.ofFn (A.get + B.get)).get ⟨i, hi⟩ = A.get ⟨i, hi⟩ + B.get ⟨i, hi⟩ :=
+        by simp [Vector.get_ofFn, Pi.add_apply]
       exact this
-
-    simp only [Vector.getElem_map, Function.comp] at h_split
     rw[h_split]
-
-
-    sorry
+    unfold A B
+    simp only [Vector.get_map, Function.comp]
+    exact (h_laws.power2Round_decomp _).symm
   have hatVec_add : ∀ {k} (u v : RqVec k),
     nttOps.hatVec (u + v) = Vector.zipWith nttOps.addHat (nttOps.hatVec u) (nttOps.hatVec v) := by
     intro k u v
