@@ -47,6 +47,7 @@ This file models the **proof-level IDS** used in the Fiat-Shamir-with-aborts sec
 
 
 open OracleComp OracleSpec
+open LatticeCrypto TransformOps
 
 namespace MLDSA
 
@@ -198,6 +199,32 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
   have h_kg : aHat * sk.s1 + sk.s2 = prims.power2RoundShiftVec pk.t1 + sk.t0 := by
     have := hkeygen
     simp [keyGenFromSeed] at this
+    obtain ⟨hpk, hsk⟩ := this
+    have hs1 : sk.s1 = (prims.expandS (prims.expandSeed seed).2.1).1 :=
+      congr_arg SecretKey.s1 hsk.symm
+    have hs2 : sk.s2 = (prims.expandS (prims.expandSeed seed).2.1).2 :=
+      congr_arg SecretKey.s2 hsk.symm
+    have ht0 : sk.t0 = (prims.power2RoundVec (aHat * sk.s1 + sk.s2)).2 := by
+      rw [hs1, hs2]; exact congr_arg PublicKey.t1 hpk.symm
+    have ht1 : pk.t1 = (prims.power2RoundVec (aHat * sk.s1 + sk.s2)).1 := by
+      rw [hs1, hs2]; exact congr_arg PublicKey.t1 hpk.symm
+    -- now use the vector power2Round roundtrip
+    rw [ht1, ht0]
+    apply Vector.ext; intro i hi
+    simp only [Primitives.power2RoundShiftVec, Primitives.power2RoundVec, Vector.map_map]
+    change (aHat * sk.s1 + sk.s2)[i] =
+      (Vector.map (prims.power2RoundShift ∘ Prod.fst ∘ prims.power2Round) (aHat * sk.s1 + sk.s2) +
+      Vector.map (Prod.snd ∘ prims.power2Round) (aHat * sk.s1 + sk.s2))[i]
+    have h_split : (Vector.map (prims.power2RoundShift ∘ Prod.fst ∘ prims.power2Round) (aHat * sk.s1 + sk.s2) +
+        Vector.map (Prod.snd ∘ prims.power2Round) (aHat * sk.s1 + sk.s2)).get ⟨i, hi⟩ =
+        (Vector.map (prims.power2RoundShift ∘ Prod.fst ∘ prims.power2Round) (aHat * sk.s1 + sk.s2)).get ⟨i, hi⟩ +
+        (Vector.map (Prod.snd ∘ prims.power2Round) (aHat * sk.s1 + sk.s2)).get ⟨i, hi⟩ := by
+      have : (Vector.ofFn (_ + _)).get ⟨i, hi⟩ = _ := by simp [Vector.get_ofFn, Pi.add_apply]
+      exact this
+
+    simp only [Vector.getElem_map, Function.comp] at h_split
+    rw[h_split]
+
 
     sorry
   have hatVec_add : ∀ {k} (u v : RqVec k),
@@ -212,11 +239,33 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
       exact this
     rw [h]
     exact h_laws.transform.toHat_add u[i] v[i]
+  change unhatVec nttOps
+    (Vector.zipWith (· - ·) (matVecMul nttOps aHat (hatVec nttOps (y + c • sk.s1)))
+    (scalarVecMul nttOps (toHat c) (hatVec nttOps (prims.power2RoundShiftVec pk.t1))))=
+    aHat * y - c • sk.s2 + c • sk.t0
+  rw[hatVec_add, matVecMul_add]
+  change unhatVec nttOps
+    (Vector.zipWith (· - ·)
+      (Vector.zipWith (addHat coeffRing) (matVecMul nttOps aHat (hatVec nttOps y))
+        (matVecMul nttOps aHat (hatVec nttOps (c • sk.s1))))
+      (scalarVecMul nttOps (toHat c) (hatVec nttOps (prims.power2RoundShiftVec pk.t1)))) =
+    aHat * y - c • sk.s2 + c • sk.t0
 
-  have matVecMul_add : ∀ {r c} (A : TqMatrix r c) u v,
-    nttOps.matVecMul A (Vector.zipWith nttOps.addHat u v) =
-    Vector.zipWith nttOps.addHat (nttOps.matVecMul A u) (nttOps.matVecMul A v) := by
+  have h1 : matVecMul nttOps aHat (hatVec nttOps sk.s1) =
+    hatVec nttOps (prims.power2RoundShiftVec pk.t1 + sk.t0 - sk.s2) := by
     sorry
+
+
+
+  calc unhatVec nttOps
+    (Vector.zipWith (· - ·) (matVecMul nttOps aHat (hatVec nttOps (y + c • sk.s1)))
+    (scalarVecMul nttOps (toHat c) (hatVec nttOps (prims.power2RoundShiftVec pk.t1))))
+    = unhatVec nttOps (
+        matVecMul nttOps aHat (hatVec nttOps y) +
+        scalarVecMul nttOps (toHat c) (matVecMul nttOps aHat (hatVec nttOps sk.s1)) -
+        scalarVecMul nttOps (toHat c) (hatVec nttOps (prims.power2RoundShiftVec pk.t1))) := by sorry
+  _ = aHat * y - c • sk.s2 + c • sk.t0 := by sorry
+
 
   -- LHS = unhatVec(Â·hatVec(y + c•s₁) - ĉ·hatVec(t₁·2^d))
   --   = unhatVec(Â·hatVec(y) + ĉ·Â·hatVec(s₁) - ĉ·hatVec(t₁·2^d))
