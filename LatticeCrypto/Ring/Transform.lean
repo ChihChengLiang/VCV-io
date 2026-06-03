@@ -224,7 +224,11 @@ structure Laws (ops : TransformOps ring Hat) : Prop where
     ops.toHat (ring.sub f g) = ops.subHat (ops.toHat f) (ops.toHat g)
   mul_add : ∀ a b c : Hat,
     ops.mulHat a (ops.addHat b c) = ops.addHat (ops.mulHat a b) (ops.mulHat a c)
+  mul_sub : ∀ a b c : Hat,
+    ops.mulHat a (ops.subHat b c) = ops.subHat (ops.mulHat a b) (ops.mulHat a c)
   mul_comm : ∀ a b : Hat, ops.mulHat a b = ops.mulHat b a
+  mul_assoc : ∀ a b c : Hat,
+    ops.mulHat (ops.mulHat a b) c = ops.mulHat a (ops.mulHat b c)
 
 -- From toHat_add componentwise
 theorem hatVec_add (laws : Laws ops) {k} (u v : PolyVec ring.Poly k) :
@@ -348,6 +352,25 @@ theorem mulHat_comm (laws : Laws ops) (a b : Hat) :
   rw [show a = ops.toHat (ops.fromHat a) from (laws.toHat_fromHat a).symm,
       show b = ops.toHat (ops.fromHat b) from (laws.toHat_fromHat b).symm,
       ← laws.toHat_mul, laws.mul_comm, laws.toHat_mul]
+
+theorem mulHat_assoc (laws : Laws ops) (a b c : Hat) :
+    ops.mulHat (ops.mulHat a b) c = ops.mulHat a (ops.mulHat b c) :=
+  laws.mul_assoc a b c
+
+theorem dot_scalar_right (laws : Laws ops) {k} (cHat : Hat)
+    (row v : PolyVec Hat k) :
+    ops.dot row (ops.scalarVecMul cHat v) = ops.mulHat cHat (ops.dot row v) := by
+  induction k with
+  | zero =>
+    have : row = #v[] := Vector.eq_empty; have : v = #v[] := Vector.eq_empty; subst_eqs
+    simp [dot, scalarVecMul]
+    -- mulHat cHat zeroHat = zeroHat  (derive from toHat_zero + ring)
+
+    sorry
+  | succ n ih =>
+    sorry
+    -- similar to foldl_distribute
+
 
 end TransformOps
 

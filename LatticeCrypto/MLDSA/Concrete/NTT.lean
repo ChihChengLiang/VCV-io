@@ -282,5 +282,9 @@ noncomputable def concreteNTTRingLaws : NTTRingLaws concreteNTTRingOps where
   mul_comm f g := by
     change multiplyNTTs f g = multiplyNTTs g f
     simp only [multiplyNTTs, LatticeCrypto.vectorRing_mul_comm]
+  mul_assoc f g h := by
+    change multiplyNTTs (multiplyNTTs f g) h = multiplyNTTs f (multiplyNTTs g h)
+    simp only [multiplyNTTs, invNTT_ntt]
+    exact congrArg ntt (vectorRing_mul_assoc _ _ _)
 
 end MLDSA.Concrete

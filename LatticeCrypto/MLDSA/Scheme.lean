@@ -270,37 +270,19 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
     simp only [LatticeCrypto.TransformOps.hatVec, LatticeCrypto.TransformOps.unhatVec,
            Vector.getElem_map, h_laws.transform.toHat_fromHat _]
 
-  change unhatVec nttOps
-    (Vector.zipWith (· - ·) (matVecMul nttOps aHat (hatVec nttOps (y + c • sk.s1)))
-    (scalarVecMul nttOps (toHat c) (hatVec nttOps (prims.power2RoundShiftVec pk.t1))))=
-    aHat * y - c • sk.s2 + c • sk.t0
-  rw[hatVec_add, matVecMul_add nttOps h_laws.transform]
-
--- = NTT⁻¹( Â·(NTT(y) + NTT(c)·NTT(s₁)) − NTT(c)·NTT(t₁·2^d) )
-
---   [matVecMul_add: Â·(u+v) = Â·u + Â·v]
-
--- = NTT⁻¹( Â·NTT(y) + NTT(c)·Â·NTT(s₁) − NTT(c)·NTT(t₁·2^d) )
-
---   [h_kg: Â·NTT(s₁) = NTT(t₁·2^d + t₀ - s₂)]
---   [NTT(c)·NTT(t₁·2^d) cancels]
-
--- = NTT⁻¹( Â·NTT(y) + NTT(c)·NTT(t₀ - s₂) )
-
---   [unhatVec linearity]
-
--- = NTT⁻¹(Â·NTT(y)) + c·(t₀ - s₂)
--- = Â·y + c·t₀ - c·s₂
--- = aHat * y - c•s2 + c•t0   ✓
-
   -- NTT⁻¹( Â·NTT(y + c·s₁) − NTT(c)·NTT(t₁·2^d) )
   calc
     unhatVec nttOps (Vector.zipWith (· - ·)
-        (Vector.zipWith (addHat coeffRing) (matVecMul nttOps aHat (hatVec nttOps y))
-          (matVecMul nttOps aHat (hatVec nttOps (c • sk.s1))))
-        (scalarVecMul nttOps (toHat c) (hatVec nttOps (prims.power2RoundShiftVec pk.t1))))
+      (matVecMul nttOps aHat (hatVec nttOps (y + c • sk.s1)))
+      (scalarVecMul nttOps (toHat c) (hatVec nttOps (prims.power2RoundShiftVec pk.t1))))
   -- = NTT⁻¹( Â·(NTT(y) + NTT(c)·NTT(s₁)) − NTT(c)·NTT(t₁·2^d) )
-     = unhatVec nttOps (Vector.zipWith (· - ·)
+  _ = unhatVec nttOps (Vector.zipWith (· - ·)
+      (Vector.zipWith (addHat coeffRing) (matVecMul nttOps aHat (hatVec nttOps y))
+        (matVecMul nttOps aHat (hatVec nttOps (c • sk.s1))))
+      (scalarVecMul nttOps (toHat c) (hatVec nttOps (prims.power2RoundShiftVec pk.t1)))) := by
+        rw[hatVec_add, matVecMul_add nttOps h_laws.transform]
+  -- = NTT⁻¹( Â·NTT(y) + NTT(c)·Â·NTT(s₁) − NTT(c)·NTT(t₁·2^d) )
+  _ = unhatVec nttOps (Vector.zipWith (· - ·)
         (Vector.zipWith (addHat coeffRing) (matVecMul nttOps aHat (hatVec nttOps y))
           (scalarVecMul nttOps (toHat c) (matVecMul nttOps aHat (hatVec nttOps sk.s1))))
         (scalarVecMul nttOps (toHat c) (hatVec nttOps (prims.power2RoundShiftVec pk.t1)))) := by
@@ -312,18 +294,28 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
         simp only [hatVec, unhatVec, mulHat_comm nttOps h_laws.transform,
            Vector.getElem_map, h_laws.transform.toHat_fromHat]
 
-
-
-
         sorry
-  _  = aHat * y - c • sk.s2 + c • sk.t0 := by sorry
 
+  --   [h_kg: Â·NTT(s₁) = NTT(t₁·2^d + t₀ - s₂)]
+  --   [NTT(c)·NTT(t₁·2^d) cancels]
 
-  -- LHS = unhatVec(Â·hatVec(y + c•s₁) - ĉ·hatVec(t₁·2^d))
-  --   = unhatVec(Â·hatVec(y) + ĉ·Â·hatVec(s₁) - ĉ·hatVec(t₁·2^d))
-  --   [use key gen: Â·hatVec(s₁) = hatVec(t₁·2^d + t₀ - s₂)]
-  --   = unhatVec(Â·hatVec(y) + ĉ·hatVec(t₀ - s₂))
-  --   = Â*y + c•t₀ - c•s₂
-  --   = RHS
+  -- = NTT⁻¹( Â·NTT(y) + NTT(c)·NTT(t₀ - s₂) )
+  --   [unhatVec linearity]
+  _ = unhatVec nttOps (
+         (matVecMul nttOps aHat (hatVec nttOps y)) +
+        (scalarVecMul nttOps (toHat c) (hatVec nttOps (sk.t0 - sk.s2)))) := by
+        sorry
+
+  -- = NTT⁻¹(Â·NTT(y)) + c·(t₀ - s₂)
+  _ = unhatVec nttOps ((matVecMul nttOps aHat (hatVec nttOps y))) + c• (sk.t0 - sk.s2) := by
+        sorry
+  -- = Â·y + c·t₀ - c·s₂
+  _ = aHat * y + c • sk.t0 - c • sk.s2 := by
+    simp only [unhatVec, hatVec]
+    rw[smul_sub c sk.t0 sk.s2]
+    sorry
+  -- = aHat * y - c•s2 + c•t0   ✓
+  _ = aHat * y - c • sk.s2 + c • sk.t0 := by
+    sorry
 
 end MLDSA
