@@ -243,32 +243,80 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
       exact this
     rw [h]
     exact h_laws.transform.toHat_add u[i] v[i]
+  have h1 : matVecMul nttOps aHat (hatVec nttOps sk.s1) =
+    hatVec nttOps (prims.power2RoundShiftVec pk.t1 + sk.t0 - sk.s2) := by
+    rw[← h_kg]
+    change matVecMul nttOps aHat (hatVec nttOps sk.s1) = hatVec nttOps (aHat * sk.s1 + sk.s2 - sk.s2)
+    have : aHat * sk.s1 + sk.s2 - sk.s2 = aHat * sk.s1 := by
+      apply Vector.ext; intro i hi
+      set_option maxRecDepth 1000 in
+      have h_cancel : ((aHat * sk.s1 : RqVec p.k) + sk.s2 - sk.s2)[i]'hi =
+          (aHat * sk.s1)[i]'hi := by
+        rw [Vector.getElem_sub]
+        -- (A + B)[i] - B[i] = A[i]
+        have h_add : ((aHat * sk.s1 : RqVec p.k) + sk.s2)[i]'hi =
+            (aHat * sk.s1)[i]'hi + sk.s2[i]'hi := by
+          have : (Vector.ofFn ((aHat * sk.s1 : RqVec p.k).get + sk.s2.get)).get ⟨i, hi⟩ =
+              (aHat * sk.s1).get ⟨i, hi⟩ + sk.s2.get ⟨i, hi⟩ :=
+            by simp [Vector.get_ofFn, Pi.add_apply]
+          exact this   -- bridges instAdd_toMathlib
+        rw [h_add, add_sub_cancel_right]
+      rw[h_cancel]
+    rw[this]
+    have hdef : aHat * sk.s1 =
+    nttOps.unhatVec (nttOps.matVecMul aHat (nttOps.hatVec sk.s1)) := rfl
+    rw[hdef]
+    apply Vector.ext; intro i hi
+    simp only [LatticeCrypto.TransformOps.hatVec, LatticeCrypto.TransformOps.unhatVec,
+           Vector.getElem_map, h_laws.transform.toHat_fromHat _]
+
   change unhatVec nttOps
     (Vector.zipWith (· - ·) (matVecMul nttOps aHat (hatVec nttOps (y + c • sk.s1)))
     (scalarVecMul nttOps (toHat c) (hatVec nttOps (prims.power2RoundShiftVec pk.t1))))=
     aHat * y - c • sk.s2 + c • sk.t0
-  rw[hatVec_add, matVecMul_add]
-  change unhatVec nttOps
-    (Vector.zipWith (· - ·)
-      (Vector.zipWith (addHat coeffRing) (matVecMul nttOps aHat (hatVec nttOps y))
-        (matVecMul nttOps aHat (hatVec nttOps (c • sk.s1))))
-      (scalarVecMul nttOps (toHat c) (hatVec nttOps (prims.power2RoundShiftVec pk.t1)))) =
-    aHat * y - c • sk.s2 + c • sk.t0
+  rw[hatVec_add, matVecMul_add nttOps h_laws.transform]
 
-  have h1 : matVecMul nttOps aHat (hatVec nttOps sk.s1) =
-    hatVec nttOps (prims.power2RoundShiftVec pk.t1 + sk.t0 - sk.s2) := by
-    sorry
+-- = NTT⁻¹( Â·(NTT(y) + NTT(c)·NTT(s₁)) − NTT(c)·NTT(t₁·2^d) )
+
+--   [matVecMul_add: Â·(u+v) = Â·u + Â·v]
+
+-- = NTT⁻¹( Â·NTT(y) + NTT(c)·Â·NTT(s₁) − NTT(c)·NTT(t₁·2^d) )
+
+--   [h_kg: Â·NTT(s₁) = NTT(t₁·2^d + t₀ - s₂)]
+--   [NTT(c)·NTT(t₁·2^d) cancels]
+
+-- = NTT⁻¹( Â·NTT(y) + NTT(c)·NTT(t₀ - s₂) )
+
+--   [unhatVec linearity]
+
+-- = NTT⁻¹(Â·NTT(y)) + c·(t₀ - s₂)
+-- = Â·y + c·t₀ - c·s₂
+-- = aHat * y - c•s2 + c•t0   ✓
+
+  -- NTT⁻¹( Â·NTT(y + c·s₁) − NTT(c)·NTT(t₁·2^d) )
+  calc
+    unhatVec nttOps (Vector.zipWith (· - ·)
+        (Vector.zipWith (addHat coeffRing) (matVecMul nttOps aHat (hatVec nttOps y))
+          (matVecMul nttOps aHat (hatVec nttOps (c • sk.s1))))
+        (scalarVecMul nttOps (toHat c) (hatVec nttOps (prims.power2RoundShiftVec pk.t1))))
+  -- = NTT⁻¹( Â·(NTT(y) + NTT(c)·NTT(s₁)) − NTT(c)·NTT(t₁·2^d) )
+     = unhatVec nttOps (Vector.zipWith (· - ·)
+        (Vector.zipWith (addHat coeffRing) (matVecMul nttOps aHat (hatVec nttOps y))
+          (scalarVecMul nttOps (toHat c) (matVecMul nttOps aHat (hatVec nttOps sk.s1))))
+        (scalarVecMul nttOps (toHat c) (hatVec nttOps (prims.power2RoundShiftVec pk.t1)))) := by
+        congr 3
+        apply Vector.ext; intro i hi
+        have hdef : c • sk.s1 =
+          nttOps.unhatVec (nttOps.scalarVecMul (toHat c) (nttOps.hatVec sk.s1)) := rfl
+        simp [hdef, matVecMul, scalarVecMul]
+        simp only [hatVec, unhatVec, mulHat_comm nttOps h_laws.transform,
+           Vector.getElem_map, h_laws.transform.toHat_fromHat]
 
 
 
-  calc unhatVec nttOps
-    (Vector.zipWith (· - ·) (matVecMul nttOps aHat (hatVec nttOps (y + c • sk.s1)))
-    (scalarVecMul nttOps (toHat c) (hatVec nttOps (prims.power2RoundShiftVec pk.t1))))
-    = unhatVec nttOps (
-        matVecMul nttOps aHat (hatVec nttOps y) +
-        scalarVecMul nttOps (toHat c) (matVecMul nttOps aHat (hatVec nttOps sk.s1)) -
-        scalarVecMul nttOps (toHat c) (hatVec nttOps (prims.power2RoundShiftVec pk.t1))) := by sorry
-  _ = aHat * y - c • sk.s2 + c • sk.t0 := by sorry
+
+        sorry
+  _  = aHat * y - c • sk.s2 + c • sk.t0 := by sorry
 
 
   -- LHS = unhatVec(Â·hatVec(y + c•s₁) - ĉ·hatVec(t₁·2^d))
@@ -277,8 +325,5 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
   --   = unhatVec(Â·hatVec(y) + ĉ·hatVec(t₀ - s₂))
   --   = Â*y + c•t₀ - c•s₂
   --   = RHS
-
-
-  sorry
 
 end MLDSA

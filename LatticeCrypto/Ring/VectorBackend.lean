@@ -207,6 +207,25 @@ theorem vectorRing_mul_add_right (f g h : Poly Coeff n) :
   rw [← Finset.sum_add_distrib]; congr 1; ext ij
   split_ifs <;> ring
 
+theorem vectorRing_mul_comm (f g : Poly Coeff n) :
+    (vRing Coeff n).mul f g = (vRing Coeff n).mul g f := by
+  apply PolyBackend.ext_coeff; intro k
+  simp only [NegacyclicRing.coeff_add, vectorNegacyclicRing_mul, vectorNegacyclicRing_backend,
+             negacyclicMulPure_coeff, negacyclicConvCoeff]
+  let ff := fun (a b : Fin n) (f g: Fin n → Coeff) => if (a + b) % n = k.val then
+      if a + b < n then f a * g b
+      else -(f a * g b)
+    else 0
+
+  -- _ =
+  -- rw [Finset.sum_equiv (Equiv.prodComm (Fin n) (Fin n))
+  --         (by simp)
+  --         (by intro ij _; rfl)]
+  -- congr 1; ext ij
+  -- simp only [Equiv.prodComm_apply, Nat.add_comm ij.2.val ij.1.val]
+  -- split_ifs  <;> ring
+  sorry
+
 @[simp] theorem vectorRing_add_get (f g : Poly Coeff n) (i : Fin n) :
     ((vectorNegacyclicRing Coeff n).add f g).get i = f.get i + g.get i :=
   congr_fun (Poly.toPi_ofPi (fun j => f.get j + g.get j)) i

@@ -279,5 +279,8 @@ noncomputable def concreteNTTRingLaws : NTTRingLaws concreteNTTRingOps where
     simp only [multiplyNTTs, invNTT_add]
     rw [← ntt_add]
     exact congrArg ntt (negacyclicMul_add_right _ _ _)
+  mul_comm f g := by
+    change multiplyNTTs f g = multiplyNTTs g f
+    simp only [multiplyNTTs, LatticeCrypto.vectorRing_mul_comm]
 
 end MLDSA.Concrete

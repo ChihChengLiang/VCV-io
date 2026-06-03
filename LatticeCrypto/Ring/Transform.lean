@@ -224,6 +224,7 @@ structure Laws (ops : TransformOps ring Hat) : Prop where
     ops.toHat (ring.sub f g) = ops.subHat (ops.toHat f) (ops.toHat g)
   mul_add : ∀ a b c : Hat,
     ops.mulHat a (ops.addHat b c) = ops.addHat (ops.mulHat a b) (ops.mulHat a c)
+  mul_comm : ∀ a b : Hat, ops.mulHat a b = ops.mulHat b a
 
 -- From toHat_add componentwise
 theorem hatVec_add (laws : Laws ops) {k} (u v : PolyVec ring.Poly k) :
@@ -341,6 +342,12 @@ theorem matVecMul_add (laws : Laws ops) {r c} (A : PolyMatrix Hat r c) (u v : Po
   refine Vector.ext fun i _ => ?_
   simp only [Vector.getElem_map, Vector.getElem_zipWith]
   exact dot_add_right ops laws _ u v
+
+theorem mulHat_comm (laws : Laws ops) (a b : Hat) :
+    ops.mulHat a b = ops.mulHat b a := by
+  rw [show a = ops.toHat (ops.fromHat a) from (laws.toHat_fromHat a).symm,
+      show b = ops.toHat (ops.fromHat b) from (laws.toHat_fromHat b).symm,
+      ← laws.toHat_mul, laws.mul_comm, laws.toHat_mul]
 
 end TransformOps
 
