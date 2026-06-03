@@ -210,21 +210,22 @@ theorem vectorRing_mul_add_right (f g h : Poly Coeff n) :
 theorem vectorRing_mul_comm (f g : Poly Coeff n) :
     (vRing Coeff n).mul f g = (vRing Coeff n).mul g f := by
   apply PolyBackend.ext_coeff; intro k
-  simp only [NegacyclicRing.coeff_add, vectorNegacyclicRing_mul, vectorNegacyclicRing_backend,
+  simp only [vectorNegacyclicRing_mul, vectorNegacyclicRing_backend,
              negacyclicMulPure_coeff, negacyclicConvCoeff]
-  let ff := fun (a b : Fin n) (f g: Fin n → Coeff) => if (a + b) % n = k.val then
-      if a + b < n then f a * g b
-      else -(f a * g b)
+  let bn := vectorBackend Coeff n
+  let n' := bn.degree
+  let ff := fun (a b : Fin n') (f g: Poly Coeff n) => if (a.val + b.val) % n = k.val then
+      if a.val + b.val < n then bn.coeff f a * bn.coeff g b
+      else -(bn.coeff f a * bn.coeff g b)
     else 0
-
-  -- _ =
-  -- rw [Finset.sum_equiv (Equiv.prodComm (Fin n) (Fin n))
-  --         (by simp)
-  --         (by intro ij _; rfl)]
-  -- congr 1; ext ij
-  -- simp only [Equiv.prodComm_apply, Nat.add_comm ij.2.val ij.1.val]
-  -- split_ifs  <;> ring
-  sorry
+  calc ∑ ⟨a, b⟩ : Fin n' × Fin n', ff a b f g
+  _ =  ∑ ⟨a, b⟩ : Fin n' × Fin n', ff b a f g := by
+    exact Finset.sum_equiv (Equiv.prodComm (Fin n') (Fin n')) (by simp) (fun ij _ => rfl)
+  _ =  ∑ ⟨a, b⟩ : Fin n' × Fin n', ff a b g f := by
+    unfold ff
+    congr 1; ext ⟨a, b⟩
+    simp only [Nat.add_comm b a]
+    split_ifs  <;> ring
 
 @[simp] theorem vectorRing_add_get (f g : Poly Coeff n) (i : Fin n) :
     ((vectorNegacyclicRing Coeff n).add f g).get i = f.get i + g.get i :=
