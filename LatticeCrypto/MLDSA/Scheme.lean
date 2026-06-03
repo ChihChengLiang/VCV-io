@@ -204,10 +204,14 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
     nttOps.hatVec (u + v) = Vector.zipWith nttOps.addHat (nttOps.hatVec u) (nttOps.hatVec v) := by
     intro k u v
     apply Vector.ext; intro i hi
-    simp only [Vector.getElem_zipWith, LatticeCrypto.TransformOps.hatVec, Vector.getElem_map]
+    simp only [LatticeCrypto.TransformOps.hatVec, Vector.getElem_map, Vector.getElem_zipWith]
+    -- (u + v)[i] = u[i] + v[i], bridging instAdd_toMathlib
+    have h : (u + v)[i]'hi = u[i]'hi + v[i]'hi := by
+      have : (Vector.ofFn (u.get + v.get)).get ⟨i, hi⟩ = u.get ⟨i, hi⟩ + v.get ⟨i, hi⟩ :=
+        by simp [Vector.get_ofFn, Pi.add_apply]
+      exact this
+    rw [h]
     exact h_laws.transform.toHat_add u[i] v[i]
-
-    sorry
 
   have matVecMul_add : ∀ {r c} (A : TqMatrix r c) u v,
     nttOps.matVecMul A (Vector.zipWith nttOps.addHat u v) =
