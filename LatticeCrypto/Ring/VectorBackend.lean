@@ -131,16 +131,16 @@ omit [CommRing Coeff] in
   simp [Vector.get]
 
 @[simp] theorem vectorRing_add_get (f g : Poly Coeff n) (i : Fin n) :
-    ((vRing Coeff n).add f g).get i = f.get i + g.get i := by
-  simp [vectorNegacyclicRing, Vector.get]
+    ((vectorNegacyclicRing Coeff n).add f g).get i = f.get i + g.get i :=
+  congr_fun (Poly.toPi_ofPi (fun j => f.get j + g.get j)) i
 
 @[simp] theorem vectorRing_sub_get (f g : Poly Coeff n) (i : Fin n) :
-    ((vRing Coeff n).sub f g).get i = f.get i - g.get i := by
-  simp [vectorNegacyclicRing, Vector.get]
+    ((vectorNegacyclicRing Coeff n).sub f g).get i = f.get i - g.get i :=
+  congr_fun (Poly.toPi_ofPi (fun j => f.get j - g.get j)) i
 
 @[simp] theorem vectorRing_neg_get (f : Poly Coeff n) (i : Fin n) :
-    ((vRing Coeff n).neg f).get i = -f.get i := by
-  simp [vectorNegacyclicRing, Vector.get]
+    ((vectorNegacyclicRing Coeff n).neg f).get i = -f.get i :=
+  congr_fun (Poly.toPi_ofPi (fun j => -f.get j)) i
 
 end VectorRingSimp
 
@@ -164,19 +164,28 @@ noncomputable def vectorNegacyclicSemantics_additive (Coeff : Type u) [CommRing 
   one_sound := hone
   add_sound := by
     intro f g
-    unfold NegacyclicQuotient.ofBackend NegacyclicQuotient.ofPolynomial PolyBackend.toPolynomial
-    simp only [vectorBackend_coeff, vectorRing_add_get, Finset.sum_add_distrib, map_add]
-    rfl
+    have hpoly : (vectorBackend Coeff n).toPolynomial ((vectorNegacyclicRing Coeff n).add f g) =
+        (vectorBackend Coeff n).toPolynomial f + (vectorBackend Coeff n).toPolynomial g := by
+      simp [PolyBackend.toPolynomial, vectorNegacyclicRing, vectorBackend,
+            Vector.get, map_add, Finset.sum_add_distrib]
+    simp only [NegacyclicQuotient.ofBackend, NegacyclicQuotient.ofPolynomial, hpoly]
+    exact map_add (Ideal.Quotient.mk _) _ _
   sub_sound := by
     intro f g
-    unfold NegacyclicQuotient.ofBackend NegacyclicQuotient.ofPolynomial PolyBackend.toPolynomial
-    simp only [vectorBackend_coeff, vectorRing_sub_get, Finset.sum_sub_distrib, map_sub]
-    rfl
+    have hpoly : (vectorBackend Coeff n).toPolynomial ((vectorNegacyclicRing Coeff n).sub f g) =
+        (vectorBackend Coeff n).toPolynomial f - (vectorBackend Coeff n).toPolynomial g := by
+      simp [PolyBackend.toPolynomial, vectorNegacyclicRing, vectorBackend,
+            Vector.get, map_sub, Finset.sum_sub_distrib]
+    simp only [NegacyclicQuotient.ofBackend, NegacyclicQuotient.ofPolynomial, hpoly]
+    exact map_sub (Ideal.Quotient.mk _) _ _
   neg_sound := by
     intro f
-    unfold NegacyclicQuotient.ofBackend NegacyclicQuotient.ofPolynomial PolyBackend.toPolynomial
-    simp only [vectorBackend_coeff, vectorRing_neg_get, Finset.sum_neg_distrib, map_neg]
-    rfl
+    have hpoly : (vectorBackend Coeff n).toPolynomial ((vectorNegacyclicRing Coeff n).neg f) =
+        -(vectorBackend Coeff n).toPolynomial f := by
+      simp [PolyBackend.toPolynomial, vectorNegacyclicRing, vectorBackend,
+            Vector.get, map_neg, Finset.sum_neg_distrib]
+    simp only [NegacyclicQuotient.ofBackend, NegacyclicQuotient.ofPolynomial, hpoly]
+    exact map_neg (Ideal.Quotient.mk _) _
   mul_sound := hmul
 
 end LatticeCrypto
