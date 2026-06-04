@@ -193,48 +193,4 @@ omit [CommRing Coeff] in
 
 end VectorRingSimp
 
-/-- Proof-facing quotient interpretation for the canonical vector backend
-(additive part). The `mul_sound` and `one_sound` fields are filled in
-`LatticeCrypto.Ring.SchoolbookCert` to avoid a circular import. -/
-noncomputable def vectorNegacyclicSemantics_additive (Coeff : Type u) [CommRing Coeff] (n : Nat)
-    (hmul : ∀ f g : (vectorNegacyclicRing Coeff n).Poly,
-      NegacyclicQuotient.ofBackend (vectorBackend Coeff n)
-        ((vectorNegacyclicRing Coeff n).mul f g) =
-      NegacyclicQuotient.ofBackend (vectorBackend Coeff n) f *
-        NegacyclicQuotient.ofBackend (vectorBackend Coeff n) g)
-    (hone : NegacyclicQuotient.ofBackend (vectorBackend Coeff n)
-        (vectorNegacyclicRing Coeff n).one = 1) :
-    NegacyclicRingSemantics (vectorNegacyclicRing Coeff n) where
-  quotientOf := NegacyclicQuotient.ofBackend (vectorBackend Coeff n)
-  zero_sound := by
-    unfold NegacyclicQuotient.ofBackend NegacyclicQuotient.ofPolynomial PolyBackend.toPolynomial
-    simp [vectorBackend_coeff, Finset.sum_const_zero, map_zero]
-    rfl
-  one_sound := hone
-  add_sound := by
-    intro f g
-    have hpoly : (vectorBackend Coeff n).toPolynomial ((vectorNegacyclicRing Coeff n).add f g) =
-        (vectorBackend Coeff n).toPolynomial f + (vectorBackend Coeff n).toPolynomial g := by
-      simp [PolyBackend.toPolynomial, vectorNegacyclicRing, vectorBackend,
-            Vector.get, map_add, Finset.sum_add_distrib]
-    simp only [NegacyclicQuotient.ofBackend, NegacyclicQuotient.ofPolynomial, hpoly]
-    exact map_add (Ideal.Quotient.mk _) _ _
-  sub_sound := by
-    intro f g
-    have hpoly : (vectorBackend Coeff n).toPolynomial ((vectorNegacyclicRing Coeff n).sub f g) =
-        (vectorBackend Coeff n).toPolynomial f - (vectorBackend Coeff n).toPolynomial g := by
-      simp [PolyBackend.toPolynomial, vectorNegacyclicRing, vectorBackend,
-            Vector.get, map_sub, Finset.sum_sub_distrib]
-    simp only [NegacyclicQuotient.ofBackend, NegacyclicQuotient.ofPolynomial, hpoly]
-    exact map_sub (Ideal.Quotient.mk _) _ _
-  neg_sound := by
-    intro f
-    have hpoly : (vectorBackend Coeff n).toPolynomial ((vectorNegacyclicRing Coeff n).neg f) =
-        -(vectorBackend Coeff n).toPolynomial f := by
-      simp [PolyBackend.toPolynomial, vectorNegacyclicRing, vectorBackend,
-            Vector.get, map_neg, Finset.sum_neg_distrib]
-    simp only [NegacyclicQuotient.ofBackend, NegacyclicQuotient.ofPolynomial, hpoly]
-    exact map_neg (Ideal.Quotient.mk _) _
-  mul_sound := hmul
-
 end LatticeCrypto
