@@ -193,17 +193,116 @@ theorem negacyclicMulPure_sound
   · -- n = 0: both sums are over Fin 0, hence empty
     push Not at hn
     have hd : backend.degree = 0 := by omega
-    have : IsEmpty (Fin backend.degree) := by rw [hd]; exact Fin.isEmpty
+    haveI : IsEmpty (Fin backend.degree) := hd ▸ inferInstance
     simp [Finset.univ_eq_empty]
+
+/-! ### `one_sound` for the vector backend -/
+
+/-- The constant-`1` vector maps to `1` in `R[X] / (X^n + 1)` for `n > 0`.
+For `n = 0`, `X^0 + 1 = 2` and `mk(0) = 1` fails for general `CommRing`
+(e.g. `ℤ[X] / (2)`), so this theorem requires positivity. -/
+private theorem vectorNegacyclicSemantics_one_sound
+    (Coeff : Type*) [CommRing Coeff] {n : Nat} (hn : 0 < n) :
+    NegacyclicQuotient.ofBackend (vectorBackend Coeff n)
+        (vectorNegacyclicRing Coeff n).one = 1 := by
+  simp only [NegacyclicQuotient.ofBackend, NegacyclicQuotient.ofPolynomial,
+             PolyBackend.toPolynomial]
+  have hcoeff : ∀ i : Fin n, (vectorBackend Coeff n).coeff (vectorNegacyclicRing Coeff n).one i =
+      if i.val = 0 then 1 else 0 := fun i => by
+    change (vectorNegacyclicRing Coeff n).one.get i = if i.val = 0 then 1 else 0
+    simp [vectorNegacyclicRing, Vector.get, Array.getElem_ofFn]
+  simp only [hcoeff, map_sum]
+  rw [Finset.sum_eq_single_of_mem ⟨0, hn⟩ (Finset.mem_univ _)]
+  · simp [Polynomial.monomial_zero_left, map_one]
+  · intro ⟨j, hj⟩ _ hne
+    simp only [Fin.mk.injEq, ne_eq] at hne
+    simp [hne, map_zero]
 
 /-- Proof-facing quotient interpretation for the canonical vector backend.
 
 Maps each executable operation to its counterpart in the quotient ring
 `R[X] / (X^n + 1)` and asserts soundness of the mapping.
-Requires `0 < n` for the negacyclic reduction in `mul_sound`. -/
-noncomputable def vectorNegacyclicSemantics (Coeff : Type*) [CommRing Coeff] (n : Nat) :
+Requires `0 < n` because `one_sound` fails for `n = 0` in general `CommRing`s. -/
+noncomputable def vectorNegacyclicSemantics (Coeff : Type*) [CommRing Coeff]
+    {n : Nat} (hn : 0 < n) :
     NegacyclicRingSemantics (vectorNegacyclicRing Coeff n) :=
   vectorNegacyclicSemantics_additive Coeff n
     (fun f g => negacyclicMulPure_sound (vectorBackend Coeff n) (vectorKernel Coeff n) f g)
+    (vectorNegacyclicSemantics_one_sound Coeff hn)
+
+/-! ### `CommRing` instance for the vector backend -/
+
+/-- The vector-backed negacyclic ring carrier is a `CommRing`.
+
+Each ring axiom is lifted from `NegacyclicQuotient` (a `CommRing`) via the injective
+homomorphism `quotientOf = NegacyclicQuotient.ofBackend`. -/
+noncomputable instance vectorNegacyclicRing_instCommRing (Coeff : Type*) [CommRing Coeff]
+    (n : Nat) : CommRing (vectorNegacyclicRing Coeff n).Poly := by
+  -- Use Nat.casesOn which eliminates into Type (Or.casesOn cannot).
+  cases n with
+  | zero =>
+    -- n = 0: the carrier is a singleton; all axioms hold by Subsingleton.
+    haveI hss : Subsingleton (vectorNegacyclicRing Coeff 0).Poly :=
+      ⟨fun a b => PolyBackend.ext_coeff fun i => i.elim0⟩
+    exact { mul := (vectorNegacyclicRing Coeff 0).mul
+            one := (vectorNegacyclicRing Coeff 0).one
+            mul_assoc a b c:= hss.elim _ _
+            one_mul a := hss.elim _ _
+            mul_one a := hss.elim _ _
+            mul_comm a b := hss.elim _ _
+            left_distrib a b c:= hss.elim _ _
+            right_distrib a b c:= hss.elim _ _
+            zero_mul a := hss.elim _ _
+            mul_zero a := hss.elim _ _
+            npow k _ := if k = 0 then (vectorNegacyclicRing Coeff 0).one else 0
+            npow_zero _ := rfl
+            npow_succ k a := hss.elim _ _
+            natCast _ := 0
+            natCast_zero := rfl
+            natCast_succ k := hss.elim _ _
+            intCast _ := 0
+            intCast_ofNat k := hss.elim _ _
+            intCast_negSucc k := hss.elim _ _ }
+  | succ m =>
+    -- n = m + 1 > 0: lift each CommRing axiom via the injective sem hom.
+    -- No `let` bindings: simp cannot match through let-bound names vs. expanded forms.
+    have inj := NegacyclicQuotient.ofBackend_injective (vectorBackend Coeff (m + 1))
+    have lift : ∀ a b : (vectorNegacyclicRing Coeff (m + 1)).Poly,
+        (vectorNegacyclicSemantics Coeff (Nat.succ_pos m)).quotientOf a =
+        (vectorNegacyclicSemantics Coeff (Nat.succ_pos m)).quotientOf b → a = b := inj
+    -- Bridge: typeclass `*`/`+`/`0`/`1` → quotient ring. LHS uses the typeclass
+    -- operators so `simp only [hmul, ...]` rewrites goals in the quotient.
+    have hmul : ∀ a b : (vectorNegacyclicRing Coeff (m + 1)).Poly,
+        (vectorNegacyclicSemantics Coeff (Nat.succ_pos m)).quotientOf (a * b) =
+        (vectorNegacyclicSemantics Coeff (Nat.succ_pos m)).quotientOf a *
+        (vectorNegacyclicSemantics Coeff (Nat.succ_pos m)).quotientOf b := fun a b => by
+      change (vectorNegacyclicSemantics Coeff (Nat.succ_pos m)).quotientOf
+          ((vectorNegacyclicRing Coeff (m + 1)).mul a b) = _
+      exact (vectorNegacyclicSemantics Coeff (Nat.succ_pos m)).mul_sound a b
+    have hone : (vectorNegacyclicSemantics Coeff (Nat.succ_pos m)).quotientOf 1 = 1 := by
+      change (vectorNegacyclicSemantics Coeff (Nat.succ_pos m)).quotientOf
+          (vectorNegacyclicRing Coeff (m + 1)).one = 1
+      exact (vectorNegacyclicSemantics Coeff (Nat.succ_pos m)).one_sound
+    have hadd : ∀ a b : (vectorNegacyclicRing Coeff (m + 1)).Poly,
+        (vectorNegacyclicSemantics Coeff (Nat.succ_pos m)).quotientOf (a + b) =
+        (vectorNegacyclicSemantics Coeff (Nat.succ_pos m)).quotientOf a +
+        (vectorNegacyclicSemantics Coeff (Nat.succ_pos m)).quotientOf b := fun a b => by
+      change (vectorNegacyclicSemantics Coeff (Nat.succ_pos m)).quotientOf
+          ((vectorNegacyclicRing Coeff (m + 1)).add a b) = _
+      exact (vectorNegacyclicSemantics Coeff (Nat.succ_pos m)).add_sound a b
+    have hzero : (vectorNegacyclicSemantics Coeff (Nat.succ_pos m)).quotientOf 0 = 0 := by
+      change (vectorNegacyclicSemantics Coeff (Nat.succ_pos m)).quotientOf
+          (vectorNegacyclicRing Coeff (m + 1)).zero = 0
+      exact (vectorNegacyclicSemantics Coeff (Nat.succ_pos m)).zero_sound
+    exact { mul := (vectorNegacyclicRing Coeff (m + 1)).mul
+            one := (vectorNegacyclicRing Coeff (m + 1)).one
+            mul_assoc a b c := lift _ _ (by simp only [hmul]; ring)
+            one_mul a := lift _ _ (by simp only [hmul, hone]; ring)
+            mul_one a := lift _ _ (by simp only [hmul, hone]; ring)
+            mul_comm a b := lift _ _ (by simp only [hmul]; ring)
+            left_distrib a b c := lift _ _ (by simp only [hmul, hadd]; ring)
+            right_distrib a b c := lift _ _ (by simp only [hmul, hadd]; ring)
+            zero_mul a := lift _ _ (by simp only [hmul, hzero]; ring)
+            mul_zero a := lift _ _ (by simp only [hmul, hzero]; ring) }
 
 end LatticeCrypto

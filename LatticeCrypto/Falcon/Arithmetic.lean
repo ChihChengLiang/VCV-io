@@ -64,11 +64,13 @@ abbrev Rq (n : ℕ) := (coeffRing n).Poly
 abbrev IntPoly (n : ℕ) := LatticeCrypto.Poly ℤ n
 
 /-- The proof-facing semantic interpretation of the bundled Falcon ring. -/
-noncomputable abbrev coeffSemantics (n : ℕ) : LatticeCrypto.NegacyclicRingSemantics (coeffRing n) :=
-  LatticeCrypto.vectorNegacyclicSemantics Coeff n
+noncomputable abbrev coeffSemantics {n : ℕ} (hn : 0 < n) :
+    LatticeCrypto.NegacyclicRingSemantics (coeffRing n) :=
+  LatticeCrypto.vectorNegacyclicSemantics Coeff hn
 
 /-- The proof-facing quotient `Z_q[X] / (X^n + 1)`. -/
-abbrev Quotient (n : ℕ) := LatticeCrypto.NegacyclicRingSemantics.Quotient (coeffSemantics n)
+abbrev Quotient {n : ℕ} (hn : 0 < n) :=
+  LatticeCrypto.NegacyclicRingSemantics.Quotient (coeffSemantics hn)
 
 /-- Transform-domain polynomials for the Falcon bundled ring. -/
 abbrev Tq (n : ℕ) := LatticeCrypto.TransformPoly (coeffRing n)
@@ -94,8 +96,8 @@ instance {n : ℕ} : DecidableEq (Tq n) := by
   infer_instance
 
 /-- The quotient interpretation of a coefficient-domain polynomial. -/
-noncomputable abbrev quotientOfRq {n : ℕ} (f : Rq n) : Quotient n :=
-  (coeffSemantics n).quotientOf f
+noncomputable abbrev quotientOfRq {n : ℕ} {hn : 0 < n} (f : Rq n) : Quotient hn :=
+  (coeffSemantics hn).quotientOf f
 
 /-- The canonical executable negacyclic multiplication on `Rq`. -/
 abbrev negacyclicMul {n : ℕ} (f g : Rq n) : Rq n :=

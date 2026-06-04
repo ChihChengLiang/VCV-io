@@ -75,6 +75,7 @@ structure NegacyclicRing (Coeff : Type u) [CommRing Coeff] where
   backend : PolyBackend.{u, v} Coeff
   kernel : PolyKernel.{u, v} Coeff backend
   zero : backend.Poly
+  one : backend.Poly
   add : backend.Poly → backend.Poly → backend.Poly
   sub : backend.Poly → backend.Poly → backend.Poly
   neg : backend.Poly → backend.Poly
@@ -96,6 +97,7 @@ structure NegacyclicRingSemantics {Coeff : Type u} [CommRing Coeff]
     (ring : NegacyclicRing Coeff) where
   quotientOf : ring.backend.Poly → NegacyclicQuotient Coeff ring.backend.degree
   zero_sound : quotientOf ring.zero = 0
+  one_sound : quotientOf ring.one = 1
   add_sound : ∀ f g, quotientOf (ring.add f g) = quotientOf f + quotientOf g
   sub_sound : ∀ f g, quotientOf (ring.sub f g) = quotientOf f - quotientOf g
   neg_sound : ∀ f, quotientOf (ring.neg f) = -quotientOf f
@@ -124,6 +126,9 @@ def coeff (ring : NegacyclicRing Coeff) (p : ring.Poly) : Fin ring.degree → Co
 instance (ring : NegacyclicRing Coeff) : Zero ring.Poly :=
   ⟨ring.zero⟩
 
+instance (ring : NegacyclicRing Coeff) : One ring.Poly :=
+  ⟨ring.one⟩
+
 instance (ring : NegacyclicRing Coeff) : Add ring.Poly :=
   ⟨ring.add⟩
 
@@ -132,6 +137,9 @@ instance (ring : NegacyclicRing Coeff) : Sub ring.Poly :=
 
 instance (ring : NegacyclicRing Coeff) : Neg ring.Poly :=
   ⟨ring.neg⟩
+
+instance (ring : NegacyclicRing Coeff) : Mul ring.Poly :=
+  ⟨ring.mul⟩
 
 /-- Two `ring.Poly` values are equal iff they agree on every coefficient. -/
 theorem poly_ext {ring : NegacyclicRing Coeff} {p q : ring.Poly}

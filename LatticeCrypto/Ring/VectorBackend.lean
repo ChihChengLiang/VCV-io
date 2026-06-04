@@ -97,6 +97,7 @@ def vectorNegacyclicRing (Coeff : Type u) [CommRing Coeff] (n : Nat) :
   backend := vectorBackend Coeff n
   kernel := vectorKernel Coeff n
   zero := (0 : Poly Coeff n)
+  one  := Vector.ofFn fun i : Fin n => if i.val = 0 then 1 else 0
   add := fun f g => Vector.ofFn fun i => f.get i + g.get i
   sub := fun f g => Vector.ofFn fun i => f.get i - g.get i
   neg := fun f => Vector.ofFn fun i => -f.get i
@@ -144,20 +145,23 @@ omit [CommRing Coeff] in
 end VectorRingSimp
 
 /-- Proof-facing quotient interpretation for the canonical vector backend
-(additive part). The `mul_sound` field is filled in
+(additive part). The `mul_sound` and `one_sound` fields are filled in
 `LatticeCrypto.Ring.SchoolbookCert` to avoid a circular import. -/
 noncomputable def vectorNegacyclicSemantics_additive (Coeff : Type u) [CommRing Coeff] (n : Nat)
     (hmul : ∀ f g : (vectorNegacyclicRing Coeff n).Poly,
       NegacyclicQuotient.ofBackend (vectorBackend Coeff n)
         ((vectorNegacyclicRing Coeff n).mul f g) =
       NegacyclicQuotient.ofBackend (vectorBackend Coeff n) f *
-        NegacyclicQuotient.ofBackend (vectorBackend Coeff n) g) :
+        NegacyclicQuotient.ofBackend (vectorBackend Coeff n) g)
+    (hone : NegacyclicQuotient.ofBackend (vectorBackend Coeff n)
+        (vectorNegacyclicRing Coeff n).one = 1) :
     NegacyclicRingSemantics (vectorNegacyclicRing Coeff n) where
   quotientOf := NegacyclicQuotient.ofBackend (vectorBackend Coeff n)
   zero_sound := by
     unfold NegacyclicQuotient.ofBackend NegacyclicQuotient.ofPolynomial PolyBackend.toPolynomial
     simp [vectorBackend_coeff, Finset.sum_const_zero, map_zero]
     rfl
+  one_sound := hone
   add_sound := by
     intro f g
     unfold NegacyclicQuotient.ofBackend NegacyclicQuotient.ofPolynomial PolyBackend.toPolynomial
