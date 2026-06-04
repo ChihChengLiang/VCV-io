@@ -29,12 +29,23 @@ universe u
 
 namespace LatticeCrypto
 
-/-- A degree-`n` polynomial represented by a coefficient vector. -/
-abbrev Poly (Coeff : Type u) (n : Nat) := Vector Coeff n
+/-- A degree-`n` polynomial represented by a coefficient vector.
+Defined as a `def` (not `abbrev`) so that `CommRing (Poly Coeff n)` remains a
+separate instance from any elementwise `CommRing (Vector Coeff n)`, preventing
+simp loops that would arise from the `CommRing` instance referencing back through
+`vectorNegacyclicSemantics`. -/
+def Poly (Coeff : Type u) (n : Nat) := Vector Coeff n
 
 namespace Poly
 
 variable {Coeff : Type u} {n : Nat}
+
+/-- Get the `i`-th coefficient. Declared `@[reducible]` so that `simp` and `rfl`
+see through it to `Vector.get`, preserving all Vector-level simp lemmas without
+a bridge theorem. Uses explicit `@Vector.get` to avoid self-reference via dot
+notation inside the `Poly` namespace. -/
+@[reducible] def get (p : Poly Coeff n) (i : Fin n) : Coeff :=
+  @Vector.get Coeff n p i
 
 /-- View a vector-backed polynomial as a `Fin n → Coeff` function. -/
 def toPi (p : Poly Coeff n) : Fin n → Coeff :=
@@ -61,6 +72,35 @@ theorem ext_get_eq {p q : Poly Coeff n}
   ext_get_eq fun i => by simp [toPi, ofPi, Vector.get]
 
 end Poly
+
+/-! ### Forwarding instances for `Poly`
+
+These bridge the gap between `def Poly = Vector Coeff n` and Lean's instance
+synthesis, which cannot automatically inherit `Vector` instances when `Poly` is
+a non-reducible `def`.  All arithmetic instances (Zero, Add, Sub, Neg,
+AddCommGroup) are given priority 1100 so they beat `CommRing`-derived defaults
+(priority 1000), ensuring that `(0 : Poly Coeff n)` unfolds to `(0 : Vector
+Coeff n)` rather than going through `vectorNegacyclicSemantics` and creating
+simp loops. -/
+
+variable {Coeff : Type u} {n : Nat}
+
+instance (priority := 1100) [Zero Coeff] : Zero (Poly Coeff n) :=
+  inferInstanceAs (Zero (Vector Coeff n))
+instance (priority := 1100) [Add Coeff] : Add (Poly Coeff n) :=
+  inferInstanceAs (Add (Vector Coeff n))
+instance (priority := 1100) [Sub Coeff] : Sub (Poly Coeff n) :=
+  inferInstanceAs (Sub (Vector Coeff n))
+instance (priority := 1100) [Neg Coeff] : Neg (Poly Coeff n) :=
+  inferInstanceAs (Neg (Vector Coeff n))
+instance : GetElem (Poly Coeff n) Nat Coeff (fun _ i => i < n) :=
+  inferInstanceAs (GetElem (Vector Coeff n) Nat Coeff (fun _ i => i < n))
+instance [DecidableEq Coeff] : DecidableEq (Poly Coeff n) :=
+  inferInstanceAs (DecidableEq (Vector Coeff n))
+instance [Inhabited Coeff] : Inhabited (Poly Coeff n) :=
+  inferInstanceAs (Inhabited (Vector Coeff n))
+instance [Repr Coeff] : Repr (Poly Coeff n) :=
+  inferInstanceAs (Repr (Vector Coeff n))
 
 /-- The canonical vector-backed semantic backend. -/
 def vectorBackend (Coeff : Type u) (n : Nat) : PolyBackend Coeff where
@@ -105,7 +145,9 @@ def vectorNegacyclicRing (Coeff : Type u) [CommRing Coeff] (n : Nat) :
   add_coeff f g i := by simp [vectorBackend, Vector.ofFn, Vector.get]
   sub_coeff f g i := by simp [vectorBackend, Vector.ofFn, Vector.get]
   neg_coeff f i   := by simp [vectorBackend, Vector.ofFn, Vector.get]
-  zero_coeff i    := by simp [vectorBackend, Vector.get]
+  zero_coeff i    := by
+    change (0 : Vector Coeff n).get i = 0
+    simp [Vector.get]
 
 section VectorRingSimp
 
@@ -120,6 +162,7 @@ omit [CommRing Coeff] in
 
 omit [CommRing Coeff] in
 @[simp] theorem Poly.get_zero [Zero Coeff] (i : Fin n) : (0 : Poly Coeff n).get i = 0 := by
+  change (0 : Vector Coeff n).get i = 0
   simp [Vector.get]
 
 @[simp] theorem vectorRing_zero :
@@ -141,6 +184,12 @@ omit [CommRing Coeff] in
 @[simp] theorem vectorRing_neg_get (f : Poly Coeff n) (i : Fin n) :
     ((vectorNegacyclicRing Coeff n).neg f).get i = -f.get i :=
   congr_fun (Poly.toPi_ofPi (fun j => -f.get j)) i
+
+omit [CommRing Coeff] in
+/-- Coefficient-wise negation lemma for abstract `Poly` (not tied to a specific ring). -/
+@[simp] theorem Poly.get_neg [Neg Coeff] (f : Poly Coeff n) (i : Fin n) :
+    (-f).get i = -f.get i :=
+  Vector.getElem_map (xs := (f : Vector Coeff n)) (- ·) i.isLt
 
 end VectorRingSimp
 
