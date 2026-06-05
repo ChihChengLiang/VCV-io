@@ -215,13 +215,13 @@ discharge these obligations (typically via matrix certification). -/
 structure Laws (ops : TransformOps ring Hat) : Prop where
   fromHat_toHat : ∀ f : ring.Poly, ops.fromHat (ops.toHat f) = f
   toHat_fromHat : ∀ fHat : Hat, ops.toHat (ops.fromHat fHat) = fHat
-  toHat_zero : ops.toHat ring.zero = ops.zeroHat
+  toHat_zero : ops.toHat 0 = ops.zeroHat
   toHat_mul : ∀ f g : ring.Poly,
-    ops.toHat (ring.mul f g) = ops.mulHat (ops.toHat f) (ops.toHat g)
+    ops.toHat (f * g) = ops.mulHat (ops.toHat f) (ops.toHat g)
   toHat_add : ∀ f g : ring.Poly,
-    ops.toHat (ring.add f g) = ops.addHat (ops.toHat f) (ops.toHat g)
+    ops.toHat (f + g) = ops.addHat (ops.toHat f) (ops.toHat g)
   toHat_sub : ∀ f g : ring.Poly,
-    ops.toHat (ring.sub f g) = ops.subHat (ops.toHat f) (ops.toHat g)
+    ops.toHat (f - g) = ops.subHat (ops.toHat f) (ops.toHat g)
   mul_add : ∀ a b c : Hat,
     ops.mulHat a (ops.addHat b c) = ops.addHat (ops.mulHat a b) (ops.mulHat a c)
   mul_sub : ∀ a b c : Hat,
@@ -277,20 +277,13 @@ theorem unhatVec_sub (laws : Laws ops) {k} (uHat vHat : PolyVec Hat k) :
 -- left identity
 private theorem addHat_zero_left (laws : Laws ops) (a : Hat) :
     ops.addHat ops.zeroHat a = a := by
-  rw [addHat_eq ops laws, show ops.fromHat ops.zeroHat = ring.zero from by
-    have := laws.toHat_zero
-    rw [← this, laws.fromHat_toHat]]
-  change ops.toHat (0 + ops.fromHat a) = a
-  rw [zero_add, laws.toHat_fromHat]
+  rw [addHat_eq ops laws, ← laws.toHat_zero, laws.fromHat_toHat, zero_add, laws.toHat_fromHat]
 
 -- associativity
 private theorem addHat_assoc (laws : Laws ops) (a b c : Hat) :
     ops.addHat (ops.addHat a b) c = ops.addHat a (ops.addHat b c) := by
-  rw [addHat_eq ops laws, addHat_eq  ops laws a b, laws.fromHat_toHat,
-      addHat_eq ops laws a, addHat_eq ops laws, laws.fromHat_toHat]
-  congr 1
-  change fromHat a + fromHat b + fromHat c = fromHat a + (fromHat b + fromHat c)
-  rw[add_assoc]
+  rw [addHat_eq ops laws, addHat_eq ops laws a b, laws.fromHat_toHat,
+      addHat_eq ops laws a, addHat_eq ops laws, laws.fromHat_toHat, add_assoc]
 
 private theorem addHat_comm (laws : Laws ops) (a b : Hat) :
     ops.addHat a b = ops.addHat b a := by
@@ -386,19 +379,12 @@ theorem coeffScalarVecMul_sub (laws : Laws ops) {k} (c : ring.Poly)
   refine Vector.ext fun i hi => ?_
   simp only [coeffScalarVecMul, unhatVec, scalarVecMul, hatVec,
              Vector.getElem_map, Vector.getElem_sub]
-  change fromHat (mulHat ring (toHat c) (toHat (ring.sub u[i] v[i]))) =
-    fromHat (mulHat ring (toHat c) (toHat u[i])) -
-    fromHat (mulHat ring (toHat c) (toHat v[i]))
   rw[laws.toHat_sub u[i] v[i], laws.mul_sub, fromHat_subHat ops laws]
 
 private theorem subHat_self (laws : Laws ops) (a : Hat) :
     ops.subHat a a = ops.zeroHat := by
   conv_lhs => rw [show a = ops.toHat (ops.fromHat a) from (laws.toHat_fromHat a).symm]
-  rw [← laws.toHat_sub]
-  change  toHat ((fromHat a) - (fromHat a)) = zeroHat ring
-  rw[sub_self]
-  change toHat ring.zero = zeroHat ring
-  rw[laws.toHat_zero]
+  rw [← laws.toHat_sub, sub_self, laws.toHat_zero]
 
 theorem dot_scalar_right (laws : Laws ops) {k} (cHat : Hat)
     (row v : PolyVec Hat k) :
@@ -423,11 +409,7 @@ theorem dot_scalar_right (laws : Laws ops) {k} (cHat : Hat)
     simp only [dot, scalarVecMul] at ih_pop
     rw [ih_pop, laws.mul_add]
     congr 1
-    change ops.mulHat row.back (ops.mulHat cHat v.back) =
-      ops.mulHat cHat (ops.mulHat row.back v.back)
     rw[ops.mulHat_comm laws, ops.mulHat_assoc laws, ops.mulHat_comm laws v.back]
-
-
 
 end TransformOps
 
