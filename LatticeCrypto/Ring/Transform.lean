@@ -246,32 +246,33 @@ theorem hatVec_sub (laws : Laws ops) {k} (u v : PolyVec ring.Poly k) :
     Vector.zipWith_map, Vector.getElem_zipWith]
   exact laws.toHat_sub u[i] v[i]
 
-theorem unhatVec_add (laws : Laws ops) {k} (u v : PolyVec ring.Poly k) :
-    ops.unhatVec (Vector.zipWith ops.addHat (ops.hatVec u) (ops.hatVec v)) =
-      ops.unhatVec (ops.hatVec u) + ops.unhatVec (ops.hatVec v) := by
-  refine Vector.ext fun i _ => ?_
-  simp only [hatVec, Vector.getElem_map, Vector.getElem_add, unhatVec,
-    Vector.zipWith_map, Vector.getElem_zipWith, laws.fromHat_toHat]
-  rw [←laws.toHat_add]
-  change fromHat (toHat (u[i] + v[i])) = u[i] + v[i]
-  rw [laws.fromHat_toHat]
-
-theorem unhatVec_sub (laws : Laws ops) {k} (u v : PolyVec ring.Poly k) :
-    ops.unhatVec (Vector.zipWith ops.subHat (ops.hatVec u) (ops.hatVec v)) =
-      ops.unhatVec (ops.hatVec u) - ops.unhatVec (ops.hatVec v) := by
-  refine Vector.ext fun i _ => ?_
-  simp only [hatVec, Vector.getElem_map, Vector.getElem_sub, unhatVec,
-    Vector.zipWith_map, Vector.getElem_zipWith, laws.fromHat_toHat]
-  rw [←laws.toHat_sub]
-  change fromHat (toHat (u[i] - v[i])) = u[i] - v[i]
-  rw [laws.fromHat_toHat]
-
 private theorem addHat_eq (laws : Laws ops) (a b : Hat) :
-    ops.addHat a b = ops.toHat (ring.add (ops.fromHat a) (ops.fromHat b)) := by
+    ops.addHat a b = ops.toHat ((ops.fromHat a) + (ops.fromHat b)) := by
   rw [← laws.toHat_fromHat a, ← laws.toHat_fromHat b, ← laws.toHat_add]
   congr 3
   · rw[laws.toHat_fromHat]
   · rw[laws.toHat_fromHat]
+
+theorem unhatVec_add (laws : Laws ops) {k} (uHat vHat : PolyVec Hat k) :
+    ops.unhatVec (Vector.zipWith ops.addHat uHat vHat) =
+      ops.unhatVec uHat + ops.unhatVec vHat := by
+  refine Vector.ext fun i _ => ?_
+  simp only [unhatVec, Vector.getElem_map, Vector.getElem_add, Vector.getElem_zipWith]
+  rw [addHat_eq ops laws, laws.fromHat_toHat]
+
+private theorem subHat_eq (laws : Laws ops) (a b : Hat) :
+    ops.subHat a b = ops.toHat ((ops.fromHat a) - (ops.fromHat b)) := by
+  rw [← laws.toHat_fromHat a, ← laws.toHat_fromHat b, ← laws.toHat_sub]
+  congr 3
+  · rw[laws.toHat_fromHat]
+  · rw[laws.toHat_fromHat]
+
+theorem unhatVec_sub (laws : Laws ops) {k} (uHat vHat : PolyVec Hat k) :
+    ops.unhatVec (Vector.zipWith ops.subHat uHat vHat) =
+      ops.unhatVec uHat - ops.unhatVec vHat := by
+  refine Vector.ext fun i _ => ?_
+  simp only [unhatVec, Vector.getElem_map, Vector.getElem_zipWith, Vector.getElem_sub]
+  rw [subHat_eq ops laws, laws.fromHat_toHat]
 
 -- left identity
 private theorem addHat_zero_left (laws : Laws ops) (a : Hat) :
@@ -293,11 +294,7 @@ private theorem addHat_assoc (laws : Laws ops) (a b c : Hat) :
 
 private theorem addHat_comm (laws : Laws ops) (a b : Hat) :
     ops.addHat a b = ops.addHat b a := by
-  rw[addHat_eq ops laws]
-  change toHat (fromHat a + fromHat b) = addHat ring b a
-  rw[add_comm]
-  change toHat (ring.add (fromHat b) (fromHat a)) = addHat ring b a
-  rw[← addHat_eq ops laws]
+  rw[addHat_eq ops laws, add_comm, ← addHat_eq ops laws]
 
 private theorem zipWith_push {β γ} {n : ℕ}
   (f : α → β → γ) (a : Vector α n) (b : Vector β n) (x : α) (y : β) :
