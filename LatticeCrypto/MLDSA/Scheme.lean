@@ -320,7 +320,14 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
     rw[ha, hc]
   -- = aHat * y - c•s2 + c•t0   ✓
   _ = aHat * y - c • sk.s2 + c • sk.t0 := by
-
-    sorry
+    refine Vector.ext fun i hi => ?_
+    have h_add : ∀ (u v : PolyVec coeffRing.Poly p.k),
+        (u + v)[i]'hi = u[i]'hi + v[i]'hi := fun u v => by
+      have : (Vector.ofFn (u.get + v.get)).get ⟨i, hi⟩ =
+          u.get ⟨i, hi⟩ + v.get ⟨i, hi⟩ :=
+        by simp [Vector.get_ofFn, Pi.add_apply]
+      exact this
+    simp only [h_add, Vector.getElem_sub]
+    abel
 
 end MLDSA
