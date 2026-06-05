@@ -301,7 +301,6 @@ noncomputable def concreteNTTRingLaws : NTTRingLaws concreteNTTRingOps where
   mul_assoc f g h := by
     change multiplyNTTs (multiplyNTTs f g) h = multiplyNTTs f (multiplyNTTs g h)
     simp only [multiplyNTTs, invNTT_ntt]
-    -- exact congrArg ntt (vectorRing_mul_assoc _ _ _)
-    sorry
+    exact congrArg ntt (mul_assoc (invNTT f) (invNTT g) (invNTT h))
 
 end MLDSA.Concrete
