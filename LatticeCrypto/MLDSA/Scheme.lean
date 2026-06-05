@@ -261,7 +261,7 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
             by simp [Vector.get_ofFn, Pi.add_apply]
           exact this   -- bridges instAdd_toMathlib
         rw [h_add]
-        sorry
+        abel
       rw[h_cancel]
     rw[this]
     have hdef : aHat * sk.s1 =
