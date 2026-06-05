@@ -291,9 +291,8 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
         apply Vector.ext; intro i hi
         have hdef : c • sk.s1 =
           nttOps.unhatVec (nttOps.scalarVecMul (toHat c) (nttOps.hatVec sk.s1)) := rfl
-        simp [hdef, matVecMul, scalarVecMul]
-        simp only [hatVec, unhatVec, mulHat_comm nttOps h_laws.transform,
-           Vector.getElem_map, h_laws.transform.toHat_fromHat]
+        simp only [hdef, matVecMul, scalarVecMul]
+        simp only [hatVec, unhatVec, Vector.getElem_map]
 
         sorry
 
@@ -305,18 +304,23 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
   _ = unhatVec nttOps (
          (matVecMul nttOps aHat (hatVec nttOps y)) +
         (scalarVecMul nttOps (toHat c) (hatVec nttOps (sk.t0 - sk.s2)))) := by
+        rw[h1]
         sorry
 
   -- = NTT⁻¹(Â·NTT(y)) + c·(t₀ - s₂)
   _ = unhatVec nttOps ((matVecMul nttOps aHat (hatVec nttOps y))) + c• (sk.t0 - sk.s2) := by
         sorry
   -- = Â·y + c·t₀ - c·s₂
-  _ = aHat * y + c • sk.t0 - c • sk.s2 := by
+  _ = aHat * y + (c • sk.t0 - c • sk.s2) := by
     simp only [unhatVec, hatVec]
-    -- rw[smul_sub c sk.t0 sk.s2]
-    sorry
+    have ha : Vector.map fromHat (matVecMul nttOps aHat (Vector.map toHat y)) = aHat * y := by
+      simp only [HMul.hMul, coeffMatVecMul, unhatVec, hatVec]
+    have hc : c • (sk.t0 - sk.s2) = c • sk.t0 - c • sk.s2 :=
+      nttOps.coeffScalarVecMul_sub h_laws.transform c sk.t0 sk.s2
+    rw[ha, hc]
   -- = aHat * y - c•s2 + c•t0   ✓
   _ = aHat * y - c • sk.s2 + c • sk.t0 := by
+
     sorry
 
 end MLDSA
