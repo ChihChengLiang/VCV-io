@@ -394,19 +394,42 @@ theorem coeffScalarVecMul_sub (laws : Laws ops) {k} (c : ring.Poly)
     fromHat (mulHat ring (toHat c) (toHat v[i]))
   rw[laws.toHat_sub u[i] v[i], laws.mul_sub, fromHat_subHat ops laws]
 
+private theorem subHat_self (laws : Laws ops) (a : Hat) :
+    ops.subHat a a = ops.zeroHat := by
+  conv_lhs => rw [show a = ops.toHat (ops.fromHat a) from (laws.toHat_fromHat a).symm]
+  rw [← laws.toHat_sub]
+  change  toHat ((fromHat a) - (fromHat a)) = zeroHat ring
+  rw[sub_self]
+  change toHat ring.zero = zeroHat ring
+  rw[laws.toHat_zero]
+
 theorem dot_scalar_right (laws : Laws ops) {k} (cHat : Hat)
     (row v : PolyVec Hat k) :
     ops.dot row (ops.scalarVecMul cHat v) = ops.mulHat cHat (ops.dot row v) := by
   induction k with
   | zero =>
     have : row = #v[] := Vector.eq_empty; have : v = #v[] := Vector.eq_empty; subst_eqs
-    simp [dot, scalarVecMul]
-    -- mulHat cHat zeroHat = zeroHat  (derive from toHat_zero + ring)
-
-    sorry
+    simp only [dot, scalarVecMul, Vector.map_mk, List.map_toArray, List.map_nil,
+      Vector.zipWith_self, Vector.foldl_mk, List.size_toArray, List.length_nil, List.foldl_toArray',
+      List.foldl_nil]
+    have h := laws.mul_sub cHat cHat cHat
+    simp only [subHat_self ops laws] at h
+    rw[h]
   | succ n ih =>
-    sorry
-    -- similar to foldl_distribute
+    haveI : NeZero (n + 1) := ⟨Nat.succ_ne_zero n⟩
+    rw [← Vector.push_pop_back row, ← Vector.push_pop_back v]
+    change ops.dot (row.pop.push row.back) (ops.scalarVecMul cHat (v.pop.push v.back)) =
+      ops.mulHat cHat (ops.dot (row.pop.push row.back) (v.pop.push v.back))
+    simp only [dot, scalarVecMul, Vector.map_push, zipWith_push, Vector.foldl_push]
+    have ih_pop : ops.dot row.pop (ops.scalarVecMul cHat v.pop) =
+      ops.mulHat cHat (ops.dot row.pop v.pop) := ih row.pop v.pop
+    simp only [dot, scalarVecMul] at ih_pop
+    rw [ih_pop, laws.mul_add]
+    congr 1
+    change ops.mulHat row.back (ops.mulHat cHat v.back) =
+      ops.mulHat cHat (ops.mulHat row.back v.back)
+    rw[ops.mulHat_comm laws, ops.mulHat_assoc laws, ops.mulHat_comm laws v.back]
+
 
 
 end TransformOps

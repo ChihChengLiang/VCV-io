@@ -293,14 +293,18 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
           nttOps.unhatVec (nttOps.scalarVecMul (toHat c) (nttOps.hatVec sk.s1)) := rfl
         simp only [hdef, matVecMul, scalarVecMul]
         simp only [hatVec, unhatVec, Vector.getElem_map]
+        change  dot nttOps aHat[i]
+          (Vector.map toHat (Vector.map fromHat (
+            Vector.map (mulHat coeffRing (toHat c)) (Vector.map toHat sk.s1)))) =
+          mulHat coeffRing (toHat c) (dot nttOps aHat[i] (Vector.map toHat sk.s1))
+        rw [
+          show Vector.map toHat (Vector.map fromHat
+              (Vector.map (mulHat coeffRing (toHat c)) (Vector.map toHat sk.s1))) =
+            Vector.map (mulHat coeffRing (toHat c)) (Vector.map toHat sk.s1) from by
+            apply Vector.ext; intro j hj
+            simp only [Vector.getElem_map, h_laws.transform.toHat_fromHat]]
+        exact nttOps.dot_scalar_right h_laws.transform (toHat c) _ _
 
-        sorry
-
-  --   [h_kg: Â·NTT(s₁) = NTT(t₁·2^d + t₀ - s₂)]
-  --   [NTT(c)·NTT(t₁·2^d) cancels]
-
-  -- = NTT⁻¹( Â·NTT(y) + NTT(c)·NTT(t₀ - s₂) )
-  --   [unhatVec linearity]
   _ = unhatVec nttOps (
          (matVecMul nttOps aHat (hatVec nttOps y)) +
         (scalarVecMul nttOps (toHat c) (hatVec nttOps (sk.t0 - sk.s2)))) := by
