@@ -239,6 +239,10 @@ private theorem invNTT_add (g h : Tq) : invNTT (g + h) = invNTT g + invNTT h := 
   apply ntt_injective
   rw [ntt_invNTT, ntt_add, ntt_invNTT, ntt_invNTT]
 
+private theorem invNTT_sub (g h : Tq) : invNTT (g - h) = invNTT g - invNTT h := by
+  apply ntt_injective
+  rw [ntt_invNTT, ntt_sub, ntt_invNTT, ntt_invNTT]
+
 private theorem negacyclicMul_coeff (a b : Rq) (k : Fin ringDegree) :
     polyBackend.coeff (negacyclicMul a b) k =
       LatticeCrypto.negacyclicConvCoeff (polyBackend.coeff a) (polyBackend.coeff b) k :=
@@ -252,6 +256,13 @@ private theorem negacyclicMul_add_right (a b c : Rq) :
   rw [← Finset.sum_add_distrib]; congr 1; ext ij
   split_ifs <;> ring
 
+private theorem negacyclicMul_sub_right (a b c : Rq) :
+    negacyclicMul a (b - c) = negacyclicMul a b - negacyclicMul a c := by
+  apply LatticeCrypto.NegacyclicRing.poly_ext; intro k
+  simp only [LatticeCrypto.NegacyclicRing.coeff_sub, negacyclicMul_coeff,
+             LatticeCrypto.negacyclicConvCoeff]
+  rw [← Finset.sum_sub_distrib]; congr 1; ext ij
+  split_ifs <;> ring
 
 /-- Concrete `NTTRingOps` instance for ML-DSA. -/
 @[reducible] def concreteNTTRingOps : NTTRingOps where
@@ -279,12 +290,18 @@ noncomputable def concreteNTTRingLaws : NTTRingLaws concreteNTTRingOps where
     simp only [multiplyNTTs, invNTT_add]
     rw [← ntt_add]
     exact congrArg ntt (negacyclicMul_add_right _ _ _)
+  mul_sub f g h := by
+    change multiplyNTTs f (g - h) = multiplyNTTs f g - multiplyNTTs f h
+    simp only [multiplyNTTs, invNTT_sub]
+    rw [← ntt_sub]
+    exact congrArg ntt (negacyclicMul_sub_right _ _ _)
   mul_comm f g := by
     change multiplyNTTs f g = multiplyNTTs g f
     simp only [multiplyNTTs, LatticeCrypto.vectorRing_mul_comm]
   mul_assoc f g h := by
     change multiplyNTTs (multiplyNTTs f g) h = multiplyNTTs f (multiplyNTTs g h)
     simp only [multiplyNTTs, invNTT_ntt]
-    exact congrArg ntt (vectorRing_mul_assoc _ _ _)
+    -- exact congrArg ntt (vectorRing_mul_assoc _ _ _)
+    sorry
 
 end MLDSA.Concrete

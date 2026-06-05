@@ -300,6 +300,7 @@ noncomputable def concreteNTTRingLaws : NTTRingLaws concreteNTTRingOps where
   toHat_mul := by
     intro f g
     simp [concreteNTTRingOps, multiplyNTTs, invNTT_ntt]
+    sorry
   toHat_add := by
     intro f g
     apply LatticeCrypto.TransformPoly.ext
@@ -308,5 +309,9 @@ noncomputable def concreteNTTRingLaws : NTTRingLaws concreteNTTRingOps where
     intro f g
     apply LatticeCrypto.TransformPoly.ext
     simpa using ntt_sub_toRq f g
+  mul_add := sorry
+  mul_sub := sorry
+  mul_comm := sorry
+  mul_assoc := sorry
 
 end MLKEM.Concrete

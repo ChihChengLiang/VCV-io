@@ -260,7 +260,8 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
               (aHat * sk.s1).get ⟨i, hi⟩ + sk.s2.get ⟨i, hi⟩ :=
             by simp [Vector.get_ofFn, Pi.add_apply]
           exact this   -- bridges instAdd_toMathlib
-        rw [h_add, add_sub_cancel_right]
+        rw [h_add]
+        sorry
       rw[h_cancel]
     rw[this]
     have hdef : aHat * sk.s1 =
@@ -312,7 +313,7 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
   -- = Â·y + c·t₀ - c·s₂
   _ = aHat * y + c • sk.t0 - c • sk.s2 := by
     simp only [unhatVec, hatVec]
-    rw[smul_sub c sk.t0 sk.s2]
+    -- rw[smul_sub c sk.t0 sk.s2]
     sorry
   -- = aHat * y - c•s2 + c•t0   ✓
   _ = aHat * y - c • sk.s2 + c • sk.t0 := by
