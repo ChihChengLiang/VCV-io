@@ -296,11 +296,10 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
             h_laws.transform.mul_sub (nttOps.toHat c)]
         simp only [fhs, fha]
         abel
-  _ = aHat * y + (c • sk.t0 - c • sk.s2) := by
+  _ = aHat * y - c • sk.s2 + c • sk.t0 := by
     simp only [unhatVec, hatVec, HMul.hMul, coeffMatVecMul]
     rw [show c • (sk.t0 - sk.s2) = c • sk.t0 - c • sk.s2 from
       nttOps.coeffScalarVecMul_sub h_laws.transform c sk.t0 sk.s2]
-  _ = aHat * y - c • sk.s2 + c • sk.t0 := by
     refine Vector.ext fun i hi => ?_
     simp only [Vector.getElem_add, Vector.getElem_sub]
     abel
