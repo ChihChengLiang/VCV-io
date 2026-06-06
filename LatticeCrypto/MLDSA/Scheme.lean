@@ -198,6 +198,9 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
   let laws := h_laws.transform
   set aHat := prims.expandA pk.rho
   simp only [computeWApprox]
+  refine Vector.ext fun i hi => ?_
+  simp only [Vector.getElem_add, Vector.getElem_sub,
+    nttOps.hatVec_add, nttOps.unhatVec_sub, nttOps.matVecMul_add, nttOps.unhatVec_add]
   have h_kg : prims.power2RoundShiftVec pk.t1 + sk.t0 = aHat * sk.s1 + sk.s2 := by
     simp only [keyGenFromSeed, Prod.mk.injEq] at hkeygen
     obtain ⟨hpk, hsk⟩ := hkeygen
@@ -213,77 +216,37 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
     simp only [Vector.getElem_add, Primitives.power2RoundShiftVec, Primitives.power2RoundVec,
       Vector.map_map, Vector.getElem_map, Function.comp]
     exact h_laws.power2Round_decomp _
-  have h1 : nttOps.matVecMul aHat (nttOps.hatVec sk.s1) =
-    nttOps.hatVec (prims.power2RoundShiftVec pk.t1 + sk.t0 - sk.s2) := by
+  have hAs1_hat : nttOps.matVecMul aHat (nttOps.hatVec sk.s1) =
+      nttOps.hatVec (prims.power2RoundShiftVec pk.t1 + sk.t0 - sk.s2) := by
     rw [h_kg]
-    refine Vector.ext fun i hi => ?_
-    have hcancel: aHat * sk.s1 + sk.s2 - sk.s2 = aHat * sk.s1 := by
-      refine Vector.ext fun i hi => ?_
-      simp only [Vector.getElem_sub, Vector.getElem_add]
+    refine Vector.ext fun j hj => ?_
+    simp only [hatVec, HMul.hMul, coeffMatVecMul, unhatVec, matVecMul,
+               Vector.getElem_map, Vector.getElem_sub, Vector.getElem_add]
+    have hcancel : (fromHat (dot nttOps aHat[j] (Vector.map toHat sk.s1)) : Rq) +
+        sk.s2[j] - sk.s2[j] = fromHat (dot nttOps aHat[j] (Vector.map toHat sk.s1)) := by
       abel
-    rw [hcancel,
-      show aHat * sk.s1 = nttOps.unhatVec (nttOps.matVecMul aHat (nttOps.hatVec sk.s1)) from rfl]
-    simp [hatVec, unhatVec, Vector.getElem_map, laws.toHat_fromHat _]
-  -- NTT⁻¹( Â·NTT(y + c·s₁) − NTT(c)·NTT(t₁·2^d) )
-  calc
-    nttOps.unhatVec (
-      (nttOps.matVecMul aHat (nttOps.hatVec (y + c • sk.s1))) -
-      (nttOps.scalarVecMul (toHat c) (nttOps.hatVec (prims.power2RoundShiftVec pk.t1))))
-  -- = NTT⁻¹( Â·(NTT(y) + NTT(c)·NTT(s₁)) − NTT(c)·NTT(t₁·2^d) )
-  _ = nttOps.unhatVec (
-      ((nttOps.matVecMul aHat (nttOps.hatVec y)) +
-        (nttOps.matVecMul aHat (nttOps.hatVec (c • sk.s1)))) -
-      (nttOps.scalarVecMul (toHat c) (nttOps.hatVec (prims.power2RoundShiftVec pk.t1)))) := by
-        rw[nttOps.hatVec_add, nttOps.matVecMul_add]
-  -- = NTT⁻¹( Â·NTT(y) + NTT(c)·Â·NTT(s₁) − NTT(c)·NTT(t₁·2^d) )
-  _ = nttOps.unhatVec (
-        ((nttOps.matVecMul aHat (nttOps.hatVec y)) +
-          (nttOps.scalarVecMul (toHat c) (nttOps.matVecMul aHat (nttOps.hatVec sk.s1)))) -
-        (nttOps.scalarVecMul (toHat c) (nttOps.hatVec (prims.power2RoundShiftVec pk.t1)))) := by
-        suffices h : nttOps.matVecMul aHat (nttOps.hatVec (c • sk.s1)) =
-          nttOps.scalarVecMul (toHat c) (nttOps.matVecMul aHat (nttOps.hatVec sk.s1)) by
-          rw[h]
-        refine Vector.ext fun i hi => ?_
-        have hdef : c • sk.s1 =
-          nttOps.unhatVec (nttOps.scalarVecMul (toHat c) (nttOps.hatVec sk.s1)) := rfl
-        simp only [hdef, matVecMul, scalarVecMul, hatVec, unhatVec, Vector.getElem_map]
-        change dot nttOps aHat[i]
-          ((((sk.s1.map toHat).map (mulHat coeffRing (toHat c))).map fromHat).map toHat) =
-          mulHat coeffRing (toHat c) (dot nttOps aHat[i] (sk.s1.map toHat))
-        rw [
-          show (((sk.s1.map toHat).map (mulHat coeffRing (toHat c))).map fromHat).map toHat =
-            (sk.s1.map toHat).map (mulHat coeffRing (toHat c))  from by
-            apply Vector.ext; intro j hj
-            simp only [Vector.getElem_map, laws.toHat_fromHat]]
-        exact nttOps.dot_scalar_right (toHat c) _ _
-  -- = NTT⁻¹(Â·NTT(y)) + c·(t₀ - s₂)
-  _ = nttOps.unhatVec (nttOps.matVecMul aHat (nttOps.hatVec y)) + c • (sk.t0 - sk.s2) := by
-        rw [h1]
-        refine Vector.ext fun i hi => ?_
-        simp only [unhatVec, hatVec, scalarVecMul, Vector.map_map, Vector.getElem_map,
-          Vector.getElem_sub, Vector.getElem_add, Function.comp_apply]
-        -- Expand c•(t0-s2)[i]
-        have hsmul : (c • (sk.t0 - sk.s2))[i] =
-            nttOps.fromHat (nttOps.mulHat (nttOps.toHat c)
-              (nttOps.toHat ((sk.t0[i] - sk.s2[i])))) := by
-          change (nttOps.coeffScalarVecMul c (sk.t0 - sk.s2))[i] = _
-          simp only [coeffScalarVecMul, unhatVec, scalarVecMul, hatVec, Vector.map_map,
-            Vector.getElem_map, Vector.getElem_sub, Function.comp_apply]
-        rw [hsmul,
-            laws.toHat_sub ((prims.power2RoundShiftVec pk.t1)[i] + sk.t0[i]) _,
-            laws.toHat_add,
-            laws.toHat_sub (sk.t0[i]) (sk.s2[i]),
-            laws.mul_sub (nttOps.toHat c),
-            laws.mul_add (nttOps.toHat c),
-            laws.mul_sub (nttOps.toHat c)]
-        simp only [nttOps.fromHat_subHat, nttOps.fromHat_addHat]
-        abel
-  _ = aHat * y - c • sk.s2 + c • sk.t0 := by
-    simp only [unhatVec, hatVec, HMul.hMul, coeffMatVecMul]
-    rw [show c • (sk.t0 - sk.s2) = c • sk.t0 - c • sk.s2 from
-      nttOps.coeffScalarVecMul_sub c sk.t0 sk.s2]
-    refine Vector.ext fun i hi => ?_
-    simp only [Vector.getElem_add, Vector.getElem_sub]
-    abel
+    rw [hcancel, laws.toHat_fromHat]
+  have hMatScalarComm : nttOps.matVecMul aHat (nttOps.hatVec (c • sk.s1)) =
+      nttOps.scalarVecMul (toHat c) (nttOps.matVecMul aHat (nttOps.hatVec sk.s1)) := by
+    have hNTTSmul : nttOps.hatVec (c • sk.s1) =
+        nttOps.scalarVecMul (toHat c) (nttOps.hatVec sk.s1) := by
+      refine Vector.ext fun j hj => ?_
+      simp only [hatVec, scalarVecMul, Vector.getElem_map]
+      change nttOps.toHat (nttOps.coeffScalarVecMul c sk.s1)[j] = _
+      simp only [coeffScalarVecMul, unhatVec, scalarVecMul, hatVec,
+                 Vector.map_map, Vector.getElem_map, Function.comp_apply, laws.toHat_fromHat]
+    rw [hNTTSmul]
+    refine Vector.ext fun j hj => ?_
+    simp only [matVecMul, scalarVecMul, Vector.getElem_map]
+    exact nttOps.dot_scalar_right (toHat c) _ _
+  simp only [hMatScalarComm, hAs1_hat]
+  change (aHat * y)[i] +
+      (nttOps.coeffScalarVecMul c (prims.power2RoundShiftVec pk.t1 + sk.t0 - sk.s2))[i] -
+      (nttOps.coeffScalarVecMul c (prims.power2RoundShiftVec pk.t1))[i] =
+      (aHat * y)[i] -
+      (nttOps.coeffScalarVecMul c sk.s2)[i] + (nttOps.coeffScalarVecMul c sk.t0)[i]
+  simp only [nttOps.coeffScalarVecMul_sub, nttOps.coeffScalarVecMul_add,
+             Vector.getElem_sub, Vector.getElem_add]
+  abel
 
 end MLDSA
