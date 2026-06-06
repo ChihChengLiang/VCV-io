@@ -86,6 +86,16 @@ instance : Neg (TransformPoly ring) :=
 instance : GetElem (TransformPoly ring) Nat Coeff (fun _ i => i < ring.degree) where
   getElem fHat i hi := ring.backend.coeff fHat.coeffs ⟨i, hi⟩
 
+instance : AddCommGroup (TransformPoly ring) where
+  add_assoc a b c   := TransformPoly.ext (add_assoc a.coeffs b.coeffs c.coeffs)
+  zero_add a        := TransformPoly.ext (zero_add a.coeffs)
+  add_zero a        := TransformPoly.ext (add_zero a.coeffs)
+  neg_add_cancel a  := TransformPoly.ext (neg_add_cancel a.coeffs)
+  add_comm a b      := TransformPoly.ext (add_comm a.coeffs b.coeffs)
+  sub_eq_add_neg a b := TransformPoly.ext (sub_eq_add_neg a.coeffs b.coeffs)
+  nsmul             := nsmulRec
+  zsmul             := zsmulRec
+
 @[simp] theorem getElem_eq_coeffs_getElem
     (fHat : TransformPoly ring) {i : Nat} (hi : i < ring.degree) :
     fHat[i] = ring.backend.coeff fHat.coeffs ⟨i, hi⟩ :=
@@ -100,17 +110,15 @@ pointwise transform-domain arithmetic (`zeroHat`, `addHat`, `subHat`, `mulHat`).
 Concrete NTT modules provide executable instances; `TransformOps.Laws` certifies
 that the transform is a ring isomorphism. -/
 class TransformOps {Coeff : Type u} [CommRing Coeff]
-    (ring : NegacyclicRing Coeff) (Hat : outParam (Type v)) where
+    (ring : NegacyclicRing Coeff) (Hat : outParam (Type v)) [AddCommGroup Hat] where
   toHat : ring.Poly → Hat
   fromHat : Hat → ring.Poly
-  zeroHat : Hat
-  addHat : Hat → Hat → Hat
-  subHat : Hat → Hat → Hat
   mulHat : Hat → Hat → Hat
 
 namespace TransformOps
 
 variable {Coeff : Type u} [CommRing Coeff] {ring : NegacyclicRing Coeff} {Hat α : Type v}
+  [AddCommGroup Hat]
 
 /-- Backwards-compatible projection name for transform conversion. -/
 abbrev ntt (ops : TransformOps ring Hat) : ring.Poly → Hat :=
@@ -158,7 +166,7 @@ def coeffScalarVecMul {k : Nat} (c : ring.Poly) (v : PolyVec ring.Poly k) :
 
 /-- Dot product in the transform domain. -/
 def dot {k : Nat} (u v : PolyVec Hat k) : Hat :=
-  (Vector.zipWith ops.mulHat u v).foldl ops.addHat ops.zeroHat
+  (Vector.zipWith ops.mulHat u v).foldl (· + ·) (0 : Hat)
 
 /-- Matrix-vector multiplication in the transform domain. -/
 def matVecMul {rows cols : Nat} (A : PolyMatrix Hat rows cols) (v : PolyVec Hat cols) :
@@ -215,79 +223,54 @@ discharge these obligations (typically via matrix certification). -/
 structure Laws (ops : TransformOps ring Hat) : Prop where
   fromHat_toHat : ∀ f : ring.Poly, ops.fromHat (ops.toHat f) = f
   toHat_fromHat : ∀ fHat : Hat, ops.toHat (ops.fromHat fHat) = fHat
-  toHat_zero : ops.toHat 0 = ops.zeroHat
-  toHat_mul : ∀ f g : ring.Poly,
-    ops.toHat (f * g) = ops.mulHat (ops.toHat f) (ops.toHat g)
-  toHat_add : ∀ f g : ring.Poly,
-    ops.toHat (f + g) = ops.addHat (ops.toHat f) (ops.toHat g)
-  toHat_sub : ∀ f g : ring.Poly,
-    ops.toHat (f - g) = ops.subHat (ops.toHat f) (ops.toHat g)
-  mul_add : ∀ a b c : Hat,
-    ops.mulHat a (ops.addHat b c) = ops.addHat (ops.mulHat a b) (ops.mulHat a c)
-  mul_sub : ∀ a b c : Hat,
-    ops.mulHat a (ops.subHat b c) = ops.subHat (ops.mulHat a b) (ops.mulHat a c)
+  toHat_zero : ops.toHat 0 = (0 : Hat)
+  toHat_mul : ∀ f g : ring.Poly, ops.toHat (f * g) = ops.mulHat (ops.toHat f) (ops.toHat g)
+  toHat_add : ∀ f g : ring.Poly, ops.toHat (f + g) = ops.toHat f + ops.toHat g
+  toHat_sub : ∀ f g : ring.Poly, ops.toHat (f - g) = ops.toHat f - ops.toHat g
+  mul_add : ∀ a b c : Hat, ops.mulHat a (b + c) = ops.mulHat a b + ops.mulHat a c
+  mul_sub : ∀ a b c : Hat, ops.mulHat a (b - c) = ops.mulHat a b - ops.mulHat a c
   mul_comm : ∀ a b : Hat, ops.mulHat a b = ops.mulHat b a
-  mul_assoc : ∀ a b c : Hat,
-    ops.mulHat (ops.mulHat a b) c = ops.mulHat a (ops.mulHat b c)
+  mul_assoc : ∀ a b c : Hat, ops.mulHat (ops.mulHat a b) c = ops.mulHat a (ops.mulHat b c)
 
 -- From toHat_add componentwise
 theorem hatVec_add (laws : Laws ops) {k} (u v : PolyVec ring.Poly k) :
-    ops.hatVec (u + v) = Vector.zipWith ops.addHat (ops.hatVec u) (ops.hatVec v) := by
+    ops.hatVec (u + v) = ops.hatVec u + ops.hatVec v := by
   refine Vector.ext fun i _ => ?_
-  simp only [hatVec, Vector.getElem_map, Vector.getElem_add,
-    Vector.zipWith_map, Vector.getElem_zipWith]
+  simp only [hatVec, Vector.getElem_map, Vector.getElem_add]
   exact laws.toHat_add u[i] v[i]
 
 -- From toHat_sub componentwise
 theorem hatVec_sub (laws : Laws ops) {k} (u v : PolyVec ring.Poly k) :
-    ops.hatVec (u - v) = Vector.zipWith ops.subHat (ops.hatVec u) (ops.hatVec v):= by
+    ops.hatVec (u - v) = ops.hatVec u - ops.hatVec v := by
   refine Vector.ext fun i _ => ?_
-  simp only [hatVec, Vector.getElem_map, Vector.getElem_sub,
-    Vector.zipWith_map, Vector.getElem_zipWith]
+  simp only [hatVec, Vector.getElem_map, Vector.getElem_sub]
   exact laws.toHat_sub u[i] v[i]
 
 private theorem addHat_eq (laws : Laws ops) (a b : Hat) :
-    ops.addHat a b = ops.toHat ((ops.fromHat a) + (ops.fromHat b)) := by
+    a + b = ops.toHat (ops.fromHat a + ops.fromHat b) := by
   rw [← laws.toHat_fromHat a, ← laws.toHat_fromHat b, ← laws.toHat_add]
   congr 3
   · rw[laws.toHat_fromHat]
   · rw[laws.toHat_fromHat]
 
 theorem unhatVec_add (laws : Laws ops) {k} (uHat vHat : PolyVec Hat k) :
-    ops.unhatVec (Vector.zipWith ops.addHat uHat vHat) =
-      ops.unhatVec uHat + ops.unhatVec vHat := by
+    ops.unhatVec (uHat + vHat) = ops.unhatVec uHat + ops.unhatVec vHat := by
   refine Vector.ext fun i _ => ?_
-  simp only [unhatVec, Vector.getElem_map, Vector.getElem_add, Vector.getElem_zipWith]
-  rw [addHat_eq ops laws, laws.fromHat_toHat]
+  simp only [unhatVec, Vector.getElem_map, Vector.getElem_add]
+  rw [ops.addHat_eq laws, laws.fromHat_toHat]
 
 private theorem subHat_eq (laws : Laws ops) (a b : Hat) :
-    ops.subHat a b = ops.toHat ((ops.fromHat a) - (ops.fromHat b)) := by
+    a - b = ops.toHat (ops.fromHat a - ops.fromHat b) := by
   rw [← laws.toHat_fromHat a, ← laws.toHat_fromHat b, ← laws.toHat_sub]
   congr 3
   · rw[laws.toHat_fromHat]
   · rw[laws.toHat_fromHat]
 
 theorem unhatVec_sub (laws : Laws ops) {k} (uHat vHat : PolyVec Hat k) :
-    ops.unhatVec (Vector.zipWith ops.subHat uHat vHat) =
-      ops.unhatVec uHat - ops.unhatVec vHat := by
+    ops.unhatVec (uHat - vHat) = ops.unhatVec uHat - ops.unhatVec vHat := by
   refine Vector.ext fun i _ => ?_
-  simp only [unhatVec, Vector.getElem_map, Vector.getElem_zipWith, Vector.getElem_sub]
+  simp only [unhatVec, Vector.getElem_map, Vector.getElem_sub]
   rw [subHat_eq ops laws, laws.fromHat_toHat]
-
--- left identity
-private theorem addHat_zero_left (laws : Laws ops) (a : Hat) :
-    ops.addHat ops.zeroHat a = a := by
-  rw [addHat_eq ops laws, ← laws.toHat_zero, laws.fromHat_toHat, zero_add, laws.toHat_fromHat]
-
--- associativity
-private theorem addHat_assoc (laws : Laws ops) (a b c : Hat) :
-    ops.addHat (ops.addHat a b) c = ops.addHat a (ops.addHat b c) := by
-  rw [addHat_eq ops laws, addHat_eq ops laws a b, laws.fromHat_toHat,
-      addHat_eq ops laws a, addHat_eq ops laws, laws.fromHat_toHat, add_assoc]
-
-private theorem addHat_comm (laws : Laws ops) (a b : Hat) :
-    ops.addHat a b = ops.addHat b a := by
-  rw[addHat_eq ops laws, add_comm, ← addHat_eq ops laws]
 
 private theorem zipWith_push {β γ} {n : ℕ}
   (f : α → β → γ) (a : Vector α n) (b : Vector β n) (x : α) (y : β) :
@@ -296,65 +279,41 @@ private theorem zipWith_push {β γ} {n : ℕ}
   simp only [Vector.getElem_zipWith, Vector.getElem_push]
   by_cases h : i < n <;> simp [h]
 
-private theorem foldl_distribute (laws : Laws ops) {k} (a b : PolyVec Hat k) :
-  (Vector.zipWith ops.addHat a b).foldl ops.addHat ops.zeroHat =
-    ops.addHat (a.foldl ops.addHat ops.zeroHat) (b.foldl ops.addHat ops.zeroHat) := by
+private theorem foldl_distribute {k} (a b : PolyVec Hat k) :
+  (a + b).foldl (· + ·) 0 = (a.foldl (· + ·) 0) + (b.foldl (· + ·) 0) := by
   induction k with
   | zero =>
     have : a = #v[] := Vector.eq_empty
     have : b = #v[] := Vector.eq_empty
     subst a b
-    change Vector.foldl (addHat ring) (zeroHat ring) (Vector.zipWith (addHat ring) #v[] #v[]) =
-      addHat ring
-      (Vector.foldl (addHat ring) (zeroHat ring) #v[])
-      (Vector.foldl (addHat ring) (zeroHat ring) #v[])
-    rw[Vector.foldl_empty, Vector.zipWith_self, Vector.map_empty,
-      Vector.foldl_empty, addHat_zero_left ops laws]
+    simp only [Vector.eq_empty, Vector.foldl_empty, add_zero]
   | succ n ih =>
     haveI : NeZero (n + 1) := ⟨Nat.succ_ne_zero n⟩
     rw [← Vector.push_pop_back a, ← Vector.push_pop_back b]
-    -- a = a.pop.push a.back,  a.pop : PolyVec Hat n,  a.back : Hat
-    change Vector.foldl (addHat ring) (zeroHat ring)
-      (Vector.zipWith (addHat ring) (a.pop.push a.back) (b.pop.push b.back)) =
-      addHat ring
-        (Vector.foldl (addHat ring) (zeroHat ring) (a.pop.push a.back))
-        (Vector.foldl (addHat ring) (zeroHat ring) (b.pop.push b.back))
-    set sum_a := Vector.foldl (addHat ring) (zeroHat ring) a.pop
-    set sum_b := Vector.foldl (addHat ring) (zeroHat ring) b.pop
-    have :
-      Vector.foldl (addHat ring) (zeroHat ring) (Vector.zipWith (addHat ring) a.pop b.pop) =
-      addHat ring sum_a sum_b := ih a.pop b.pop
-    rw [zipWith_push, Vector.foldl_push, Vector.foldl_push,
-        Vector.foldl_push, this]
-    change addHat ring (addHat ring sum_a sum_b)  (addHat ring a.back b.back) =
-           addHat ring (addHat ring sum_a a.back) (addHat ring sum_b b.back)
-    rw[← addHat_assoc ops laws, ← addHat_assoc ops laws]
-    congr 1
-    -- (sum_a + sum_b) + a.back = (sum_a + a.back) + sum_b
-    rw[addHat_assoc ops laws]
-    -- sum_a + (sum_b + a.back) = (sum_a + a.back) + sum_b
-    rw[addHat_comm ops laws sum_b]
-    rw[addHat_assoc ops laws]
+    set sum_a := a.pop.foldl (· + ·) 0
+    set sum_b := b.pop.foldl (· + ·) 0
+    have : (a.pop.zipWith (· + ·) b.pop).foldl (· + ·) 0 = sum_a + sum_b := ih a.pop b.pop
+    change ((a.pop.push a.back).zipWith (· + ·) (b.pop.push b.back)).foldl (· + ·) 0  =
+      (a.pop.push a.back).foldl (· + ·) 0  + (b.pop.push b.back).foldl (· + ·) 0
+    rw [zipWith_push, Vector.foldl_push, Vector.foldl_push, Vector.foldl_push, this]
+    abel
 
 -- Linearity of dot
 theorem dot_add_right (laws : Laws ops) {k} (row u v : PolyVec Hat k) :
-    ops.dot row (Vector.zipWith ops.addHat u v) =
-    ops.addHat (ops.dot row u) (ops.dot row v) := by
-  have h_pt : Vector.zipWith ops.mulHat row (Vector.zipWith ops.addHat u v) =
-    Vector.zipWith ops.addHat (Vector.zipWith ops.mulHat row u)
-                              (Vector.zipWith ops.mulHat row v) := by
+    ops.dot row (u + v) = (ops.dot row u) + ops.dot row v := by
+  have h_pt : Vector.zipWith ops.mulHat row (u + v) =
+    (row.zipWith ops.mulHat u) + (row.zipWith ops.mulHat v) := by
     refine Vector.ext fun i _ => ?_
     simp [Vector.getElem_zipWith, laws.mul_add]
   simp only [dot]
-  rw [h_pt, foldl_distribute ops laws]
+  rw [h_pt, foldl_distribute]
 
 -- Linearity of matVecMul
 theorem matVecMul_add (laws : Laws ops) {r c} (A : PolyMatrix Hat r c) (u v : PolyVec Hat c) :
-    ops.matVecMul A (Vector.zipWith ops.addHat u v) =
-    Vector.zipWith ops.addHat (ops.matVecMul A u) (ops.matVecMul A v) := by
+    ops.matVecMul A (u + v) = (ops.matVecMul A u) + ops.matVecMul A v := by
   simp only [matVecMul]
   refine Vector.ext fun i _ => ?_
-  simp only [Vector.getElem_map, Vector.getElem_zipWith]
+  simp only [Vector.getElem_map, Vector.getElem_add]
   exact dot_add_right ops laws _ u v
 
 theorem mulHat_comm (laws : Laws ops) (a b : Hat) :
@@ -368,12 +327,12 @@ theorem mulHat_assoc (laws : Laws ops) (a b c : Hat) :
   laws.mul_assoc a b c
 
 private theorem fromHat_subHat (laws : Laws ops) (a b : Hat) :
-    ops.fromHat (ops.subHat a b) = ops.fromHat a - ops.fromHat b := by
+    ops.fromHat (a - b) = ops.fromHat a - ops.fromHat b := by
   conv_lhs => rw [← laws.toHat_fromHat a, ← laws.toHat_fromHat b, ← laws.toHat_sub]
   exact laws.fromHat_toHat _
 
 private theorem fromHat_addHat (laws : Laws ops) (a b : Hat) :
-    ops.fromHat (ops.addHat a b) = ops.fromHat a + ops.fromHat b := by
+    ops.fromHat (a + b) = ops.fromHat a + ops.fromHat b := by
   conv_lhs => rw [← laws.toHat_fromHat a, ← laws.toHat_fromHat b, ← laws.toHat_add]
   exact laws.fromHat_toHat _
 
@@ -395,11 +354,6 @@ theorem coeffScalarVecMul_add (laws : Laws ops) {k} (c : ring.Poly)
              Vector.getElem_map, Vector.getElem_add]
   rw [laws.toHat_add u[i] v[i], laws.mul_add, fromHat_addHat ops laws]
 
-private theorem subHat_self (laws : Laws ops) (a : Hat) :
-    ops.subHat a a = ops.zeroHat := by
-  conv_lhs => rw [show a = ops.toHat (ops.fromHat a) from (laws.toHat_fromHat a).symm]
-  rw [← laws.toHat_sub, sub_self, laws.toHat_zero]
-
 theorem dot_scalar_right (laws : Laws ops) {k} (cHat : Hat)
     (row v : PolyVec Hat k) :
     ops.dot row (ops.scalarVecMul cHat v) = ops.mulHat cHat (ops.dot row v) := by
@@ -410,7 +364,7 @@ theorem dot_scalar_right (laws : Laws ops) {k} (cHat : Hat)
       Vector.zipWith_self, Vector.foldl_mk, List.size_toArray, List.length_nil, List.foldl_toArray',
       List.foldl_nil]
     have h := laws.mul_sub cHat cHat cHat
-    simp only [subHat_self ops laws] at h
+    simp only [sub_self] at h
     rw[h]
   | succ n ih =>
     haveI : NeZero (n + 1) := ⟨Nat.succ_ne_zero n⟩
