@@ -204,14 +204,14 @@ def coeffMatTransposeVecMul {rows cols : Nat}
 /-- Coefficient-domain scalar-vector multiplication as `HSMul`, enabling `c • v` syntax.
 
 Requires a `TransformOps` instance in scope (e.g., `[nttOps : NTTRingOps]`). -/
-instance instHSMulCoeffScalar [inst : TransformOps ring Hat] {k : Nat} :
+scoped instance instHSMulCoeffScalar [inst : TransformOps ring Hat] {k : Nat} :
     HSMul ring.Poly (PolyVec ring.Poly k) (PolyVec ring.Poly k) where
   hSMul := inst.coeffScalarVecMul
 
 /-- Coefficient-domain matrix-vector multiplication as `HMul`, enabling `A * v` syntax.
 
 Requires a `TransformOps` instance in scope (e.g., `[nttOps : NTTRingOps]`). -/
-instance instHMulCoeffMatVec [inst : TransformOps ring Hat] {rows cols : Nat} :
+scoped instance instHMulCoeffMatVec [inst : TransformOps ring Hat] {rows cols : Nat} :
     HMul (PolyMatrix Hat rows cols) (PolyVec ring.Poly cols) (PolyVec ring.Poly rows) where
   hMul := inst.coeffMatVecMul
 

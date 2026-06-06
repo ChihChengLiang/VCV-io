@@ -30,6 +30,7 @@ Unlike the IDS-core in `Scheme.lean`, this layer:
 
 
 open OracleComp OracleSpec
+open LatticeCrypto TransformOps
 
 namespace MLDSA
 
