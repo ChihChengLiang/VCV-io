@@ -149,7 +149,7 @@ private lemma rq_add_neg_cancel (a b : Rq) : a + b + (-b) = a :=
 omit nttOps in
 private lemma neg_rq_get (f : Rq) (i : Fin ringDegree) : (-f).get i = -(f.get i) := by
   change (coeffRing.neg f).get i = _
-  simp [LatticeCrypto.vectorNegacyclicRing, Vector.get_ofFn]
+  simp [LatticeCrypto.vectorNegacyclicRing]
 
 omit nttOps in
 private lemma polyNorm_neg (f : Rq) : polyNorm (-f) = polyNorm f := by

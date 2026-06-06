@@ -299,7 +299,6 @@ noncomputable def concreteNTTRingLaws : NTTRingLaws concreteNTTRingOps where
     exact LatticeCrypto.NTTCert.applyMatrix_zero (backend := polyBackend) nttMatrix hzero_rq
   toHat_mul := by
     intro f g
-    simp [concreteNTTRingOps, multiplyNTTs, invNTT_ntt]
     sorry
   toHat_add := by
     intro f g

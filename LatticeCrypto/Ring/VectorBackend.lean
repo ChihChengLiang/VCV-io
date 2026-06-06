@@ -138,13 +138,13 @@ def vectorNegacyclicRing (Coeff : Type u) [CommRing Coeff] (n : Nat) :
   kernel := vectorKernel Coeff n
   zero := (0 : Poly Coeff n)
   one  := Vector.ofFn fun i : Fin n => if i.val = 0 then 1 else 0
-  add := fun f g => Vector.ofFn fun i => f.get i + g.get i
-  sub := fun f g => Vector.ofFn fun i => f.get i - g.get i
-  neg := fun f => Vector.ofFn fun i => -f.get i
+  add := Vector.zipWith (· + ·)
+  sub := Vector.zipWith (· - ·)
+  neg := Vector.map Neg.neg
   mul := negacyclicMulPure (vectorKernel Coeff n)
-  add_coeff f g i := by simp [vectorBackend, Vector.ofFn, Vector.get]
-  sub_coeff f g i := by simp [vectorBackend, Vector.ofFn, Vector.get]
-  neg_coeff f i   := by simp [vectorBackend, Vector.ofFn, Vector.get]
+  add_coeff f g i := by simp [vectorBackend, Vector.get]
+  sub_coeff f g i := by simp [vectorBackend, Vector.get]
+  neg_coeff f i   := by simp [vectorBackend, Vector.get]
   zero_coeff i    := by
     change (0 : Vector Coeff n).get i = 0
     simp [Vector.get]
@@ -228,16 +228,22 @@ theorem vectorRing_mul_comm (f g : Poly Coeff n) :
     split_ifs  <;> ring
 
 @[simp] theorem vectorRing_add_get (f g : Poly Coeff n) (i : Fin n) :
-    ((vectorNegacyclicRing Coeff n).add f g).get i = f.get i + g.get i :=
-  congr_fun (Poly.toPi_ofPi (fun j => f.get j + g.get j)) i
+    ((vectorNegacyclicRing Coeff n).add f g).get i = f.get i + g.get i := by
+  change (Vector.zipWith (· + ·) f g)[i] = f[i] + g[i]
+  simp only [Fin.getElem_fin, Vector.getElem_zipWith]
+  rfl
 
 @[simp] theorem vectorRing_sub_get (f g : Poly Coeff n) (i : Fin n) :
-    ((vectorNegacyclicRing Coeff n).sub f g).get i = f.get i - g.get i :=
-  congr_fun (Poly.toPi_ofPi (fun j => f.get j - g.get j)) i
+    ((vectorNegacyclicRing Coeff n).sub f g).get i = f.get i - g.get i := by
+  change (Vector.zipWith (· - ·) f g)[i] = f[i] - g[i]
+  simp only [Fin.getElem_fin, Vector.getElem_zipWith]
+  rfl
 
 @[simp] theorem vectorRing_neg_get (f : Poly Coeff n) (i : Fin n) :
-    ((vectorNegacyclicRing Coeff n).neg f).get i = -f.get i :=
-  congr_fun (Poly.toPi_ofPi (fun j => -f.get j)) i
+    ((vectorNegacyclicRing Coeff n).neg f).get i = -f.get i := by
+  change (Vector.map Neg.neg f)[i] = Neg.neg f[i]
+  simp [Fin.getElem_fin, Vector.getElem_map]
+  rfl
 
 omit [CommRing Coeff] in
 /-- Coefficient-wise negation lemma for abstract `Poly` (not tied to a specific ring). -/

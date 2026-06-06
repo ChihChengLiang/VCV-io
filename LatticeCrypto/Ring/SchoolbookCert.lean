@@ -233,10 +233,11 @@ noncomputable def vectorNegacyclicSemantics (Coeff : Type*) [CommRing Coeff]
     rfl
   one_sound := vectorNegacyclicSemantics_one_sound Coeff hn
   add_sound f g := by
-    simp only [vectorNegacyclicRing, vectorBackend, Vector.get, Fin.val_cast,
-      NegacyclicQuotient.ofBackend, NegacyclicQuotient.ofPolynomial, PolyBackend.toPolynomial,
-      Vector.getElem_toArray, Vector.toArray_ofFn, Array.getElem_ofFn, map_add,
-      Finset.sum_add_distrib]
+    have hpoly : (vectorBackend Coeff n).toPolynomial ((vectorNegacyclicRing Coeff n).add f g) =
+        (vectorBackend Coeff n).toPolynomial f + (vectorBackend Coeff n).toPolynomial g := by
+      simp [PolyBackend.toPolynomial, vectorNegacyclicRing, vectorBackend,
+            Vector.get, Finset.sum_add_distrib]
+    simp only [NegacyclicQuotient.ofBackend, NegacyclicQuotient.ofPolynomial, hpoly]
     exact map_add (Ideal.Quotient.mk _) _ _
   sub_sound f g := by
     have hpoly : (vectorBackend Coeff n).toPolynomial ((vectorNegacyclicRing Coeff n).sub f g) =
