@@ -195,34 +195,27 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
       (prims.expandA pk.rho) * y - c • sk.s2 + c • sk.t0 := by
   intro c y
   haveI := h_laws.transform
+  let laws := h_laws.transform
   set aHat := prims.expandA pk.rho
   simp only [computeWApprox]
-  have h_kg : aHat * sk.s1 + sk.s2 = prims.power2RoundShiftVec pk.t1 + sk.t0 := by
-    have := hkeygen
-    simp only [keyGenFromSeed, Prod.mk.injEq] at this
-    obtain ⟨hpk, hsk⟩ := this
-    have hrho : pk.rho = (prims.expandSeed seed).1 :=
-      congr_arg PublicKey.rho hpk.symm
-    have hs1 : sk.s1 = (prims.expandS (prims.expandSeed seed).2.1).1 :=
-      congr_arg SecretKey.s1 hsk.symm
-    have hs2 : sk.s2 = (prims.expandS (prims.expandSeed seed).2.1).2 :=
-      congr_arg SecretKey.s2 hsk.symm
-    have ht0 : sk.t0 = (prims.power2RoundVec (aHat * sk.s1 + sk.s2)).2 := by
-      rw [hs1, hs2, show aHat = prims.expandA (prims.expandSeed seed).1 from by
-        simp [aHat, hrho]]
-      exact congr_arg SecretKey.t0 hsk.symm
-    have ht1 : pk.t1 = (prims.power2RoundVec (aHat * sk.s1 + sk.s2)).1 := by
-      rw [hs1, hs2, show aHat = prims.expandA (prims.expandSeed seed).1 from by
-        simp [aHat, hrho]]
-      exact congr_arg PublicKey.t1 hpk.symm
-    rw [ht1, ht0]
+  have h_kg : prims.power2RoundShiftVec pk.t1 + sk.t0 = aHat * sk.s1 + sk.s2 := by
+    simp only [keyGenFromSeed, Prod.mk.injEq] at hkeygen
+    obtain ⟨hpk, hsk⟩ := hkeygen
+    have hrho  := congr_arg PublicKey.rho hpk.symm
+    have hs1   := congr_arg SecretKey.s1 hsk.symm
+    have hs2   := congr_arg SecretKey.s2 hsk.symm
+    have haHat : aHat = prims.expandA (prims.expandSeed seed).1 := by simp [aHat, hrho]
+    rw [show pk.t1 = (prims.power2RoundVec (aHat * sk.s1 + sk.s2)).1 from by
+          rw [hs1, hs2, haHat]; exact congr_arg PublicKey.t1 hpk.symm,
+        show sk.t0 = (prims.power2RoundVec (aHat * sk.s1 + sk.s2)).2 from by
+          rw [hs1, hs2, haHat]; exact congr_arg SecretKey.t0 hsk.symm]
     refine Vector.ext fun i hi => ?_
     simp only [Vector.getElem_add, Primitives.power2RoundShiftVec, Primitives.power2RoundVec,
       Vector.map_map, Vector.getElem_map, Function.comp]
-    exact (h_laws.power2Round_decomp _).symm
+    exact h_laws.power2Round_decomp _
   have h1 : nttOps.matVecMul aHat (nttOps.hatVec sk.s1) =
     nttOps.hatVec (prims.power2RoundShiftVec pk.t1 + sk.t0 - sk.s2) := by
-    rw [←h_kg]
+    rw [h_kg]
     refine Vector.ext fun i hi => ?_
     have hcancel: aHat * sk.s1 + sk.s2 - sk.s2 = aHat * sk.s1 := by
       refine Vector.ext fun i hi => ?_
@@ -230,8 +223,7 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
       abel
     rw [hcancel,
       show aHat * sk.s1 = nttOps.unhatVec (nttOps.matVecMul aHat (nttOps.hatVec sk.s1)) from rfl]
-    simp only [LatticeCrypto.TransformOps.hatVec, LatticeCrypto.TransformOps.unhatVec,
-           Vector.getElem_map, h_laws.transform.toHat_fromHat _]
+    simp [hatVec, unhatVec, Vector.getElem_map, laws.toHat_fromHat _]
   -- NTT⁻¹( Â·NTT(y + c·s₁) − NTT(c)·NTT(t₁·2^d) )
   calc
     nttOps.unhatVec (
@@ -248,22 +240,21 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
         ((nttOps.matVecMul aHat (nttOps.hatVec y)) +
           (nttOps.scalarVecMul (toHat c) (nttOps.matVecMul aHat (nttOps.hatVec sk.s1)))) -
         (nttOps.scalarVecMul (toHat c) (nttOps.hatVec (prims.power2RoundShiftVec pk.t1)))) := by
-        congr 3
-        apply Vector.ext; intro i hi
+        suffices h : nttOps.matVecMul aHat (nttOps.hatVec (c • sk.s1)) =
+          nttOps.scalarVecMul (toHat c) (nttOps.matVecMul aHat (nttOps.hatVec sk.s1)) by
+          rw[h]
+        refine Vector.ext fun i hi => ?_
         have hdef : c • sk.s1 =
           nttOps.unhatVec (nttOps.scalarVecMul (toHat c) (nttOps.hatVec sk.s1)) := rfl
-        simp only [hdef, matVecMul, scalarVecMul]
-        simp only [hatVec, unhatVec, Vector.getElem_map]
-        change  dot nttOps aHat[i]
-          (Vector.map toHat (Vector.map fromHat (
-            Vector.map (mulHat coeffRing (toHat c)) (Vector.map toHat sk.s1)))) =
-          mulHat coeffRing (toHat c) (dot nttOps aHat[i] (Vector.map toHat sk.s1))
+        simp only [hdef, matVecMul, scalarVecMul, hatVec, unhatVec, Vector.getElem_map]
+        change dot nttOps aHat[i]
+          ((((sk.s1.map toHat).map (mulHat coeffRing (toHat c))).map fromHat).map toHat) =
+          mulHat coeffRing (toHat c) (dot nttOps aHat[i] (sk.s1.map toHat))
         rw [
-          show Vector.map toHat (Vector.map fromHat
-              (Vector.map (mulHat coeffRing (toHat c)) (Vector.map toHat sk.s1))) =
-            Vector.map (mulHat coeffRing (toHat c)) (Vector.map toHat sk.s1) from by
+          show (((sk.s1.map toHat).map (mulHat coeffRing (toHat c))).map fromHat).map toHat =
+            (sk.s1.map toHat).map (mulHat coeffRing (toHat c))  from by
             apply Vector.ext; intro j hj
-            simp only [Vector.getElem_map, h_laws.transform.toHat_fromHat]]
+            simp only [Vector.getElem_map, laws.toHat_fromHat]]
         exact nttOps.dot_scalar_right (toHat c) _ _
   -- = NTT⁻¹(Â·NTT(y)) + c·(t₀ - s₂)
   _ = nttOps.unhatVec (nttOps.matVecMul aHat (nttOps.hatVec y)) + c • (sk.t0 - sk.s2) := by
@@ -279,12 +270,12 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
           simp only [coeffScalarVecMul, unhatVec, scalarVecMul, hatVec, Vector.map_map,
             Vector.getElem_map, Vector.getElem_sub, Function.comp_apply]
         rw [hsmul,
-            h_laws.transform.toHat_sub ((prims.power2RoundShiftVec pk.t1)[i] + sk.t0[i]) _,
-            h_laws.transform.toHat_add,
-            h_laws.transform.toHat_sub (sk.t0[i]) (sk.s2[i]),
-            h_laws.transform.mul_sub (nttOps.toHat c),
-            h_laws.transform.mul_add (nttOps.toHat c),
-            h_laws.transform.mul_sub (nttOps.toHat c)]
+            laws.toHat_sub ((prims.power2RoundShiftVec pk.t1)[i] + sk.t0[i]) _,
+            laws.toHat_add,
+            laws.toHat_sub (sk.t0[i]) (sk.s2[i]),
+            laws.mul_sub (nttOps.toHat c),
+            laws.mul_add (nttOps.toHat c),
+            laws.mul_sub (nttOps.toHat c)]
         simp only [nttOps.fromHat_subHat, nttOps.fromHat_addHat]
         abel
   _ = aHat * y - c • sk.s2 + c • sk.t0 := by
