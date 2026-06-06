@@ -326,12 +326,12 @@ theorem mulHat_assoc (laws : Laws ops) (a b c : Hat) :
     ops.mulHat (ops.mulHat a b) c = ops.mulHat a (ops.mulHat b c) :=
   laws.mul_assoc a b c
 
-private theorem fromHat_subHat (laws : Laws ops) (a b : Hat) :
+theorem fromHat_subHat (laws : Laws ops) (a b : Hat) :
     ops.fromHat (a - b) = ops.fromHat a - ops.fromHat b := by
   conv_lhs => rw [← laws.toHat_fromHat a, ← laws.toHat_fromHat b, ← laws.toHat_sub]
   exact laws.fromHat_toHat _
 
-private theorem fromHat_addHat (laws : Laws ops) (a b : Hat) :
+theorem fromHat_addHat (laws : Laws ops) (a b : Hat) :
     ops.fromHat (a + b) = ops.fromHat a + ops.fromHat b := by
   conv_lhs => rw [← laws.toHat_fromHat a, ← laws.toHat_fromHat b, ← laws.toHat_add]
   exact laws.fromHat_toHat _

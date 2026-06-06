@@ -268,16 +268,6 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
   _ = nttOps.unhatVec (nttOps.matVecMul aHat (nttOps.hatVec y)) + c • (sk.t0 - sk.s2) := by
         rw [h1]
         refine Vector.ext fun i hi => ?_
-        have fhs : ∀ (a b : Tq),
-            nttOps.fromHat (a - b) = nttOps.fromHat a - nttOps.fromHat b := fun a b => by
-          conv_lhs => rw [← h_laws.transform.toHat_fromHat a,
-                          ← h_laws.transform.toHat_fromHat b, ← h_laws.transform.toHat_sub]
-          exact h_laws.transform.fromHat_toHat _
-        have fha : ∀ (a b : Tq),
-            nttOps.fromHat (a + b) = nttOps.fromHat a + nttOps.fromHat b := fun a b => by
-          conv_lhs => rw [← h_laws.transform.toHat_fromHat a,
-                          ← h_laws.transform.toHat_fromHat b, ← h_laws.transform.toHat_add]
-          exact h_laws.transform.fromHat_toHat _
         simp only [unhatVec, hatVec, scalarVecMul, Vector.map_map, Vector.getElem_map,
           Vector.getElem_sub, Vector.getElem_add, Function.comp_apply]
         -- Expand c•(t0-s2)[i]
@@ -294,7 +284,7 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
             h_laws.transform.mul_sub (nttOps.toHat c),
             h_laws.transform.mul_add (nttOps.toHat c),
             h_laws.transform.mul_sub (nttOps.toHat c)]
-        simp only [fhs, fha]
+        simp only [nttOps.fromHat_subHat h_laws.transform, nttOps.fromHat_addHat h_laws.transform]
         abel
   _ = aHat * y - c • sk.s2 + c • sk.t0 := by
     simp only [unhatVec, hatVec, HMul.hMul, coeffMatVecMul]
