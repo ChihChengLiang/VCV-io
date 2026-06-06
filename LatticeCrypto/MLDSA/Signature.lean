@@ -129,6 +129,7 @@ def fipsVerify (pk : PublicKey p prims) (msg : List Byte)
 
 /-! ### Vector Arithmetic Helpers -/
 
+omit nttOps in
 private lemma rq_sub_add_cancel (a b : Rq) : a - b + b = a :=
   LatticeCrypto.Poly.ext_get_eq fun i => by
     change ((coeffRing.add (coeffRing.sub a b) b) : Rq).get i = a.get i

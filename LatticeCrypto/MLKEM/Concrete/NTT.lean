@@ -281,12 +281,9 @@ theorem ntt_sub_toRq (f g : Rq) : (ntt (f - g) : Rq) = (ntt f : Rq) - (ntt g : R
   LatticeCrypto.NTTCert.applyMatrix_sub (backend := polyBackend) nttMatrix hsub_rq f g
 
 /-- Concrete `NTTRingOps` instance for ML-KEM. -/
-def concreteNTTRingOps : NTTRingOps where
+@[reducible] def concreteNTTRingOps : NTTRingOps where
   toHat := ntt
   fromHat := invNTT
-  zeroHat := 0
-  addHat := (· + ·)
-  subHat := (· - ·)
   mulHat := multiplyNTTs
 
 /-- Proof bundle showing that the concrete ML-KEM NTT implementation satisfies the abstract

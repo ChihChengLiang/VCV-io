@@ -268,9 +268,6 @@ private theorem negacyclicMul_sub_right (a b c : Rq) :
 @[reducible] def concreteNTTRingOps : NTTRingOps where
   toHat := ntt
   fromHat := invNTT
-  zeroHat := 0
-  addHat := (· + ·)
-  subHat := (· - ·)
   mulHat := multiplyNTTs
 
 /-- Proof-oriented algebraic laws for the ML-DSA concrete NTT. -/
