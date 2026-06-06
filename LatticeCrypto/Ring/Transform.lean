@@ -372,6 +372,11 @@ private theorem fromHat_subHat (laws : Laws ops) (a b : Hat) :
   conv_lhs => rw [← laws.toHat_fromHat a, ← laws.toHat_fromHat b, ← laws.toHat_sub]
   exact laws.fromHat_toHat _
 
+private theorem fromHat_addHat (laws : Laws ops) (a b : Hat) :
+    ops.fromHat (ops.addHat a b) = ops.fromHat a + ops.fromHat b := by
+  conv_lhs => rw [← laws.toHat_fromHat a, ← laws.toHat_fromHat b, ← laws.toHat_add]
+  exact laws.fromHat_toHat _
+
 theorem coeffScalarVecMul_sub (laws : Laws ops) {k} (c : ring.Poly)
     (u v : PolyVec ring.Poly k) :
     ops.coeffScalarVecMul c (u - v) =
@@ -380,6 +385,15 @@ theorem coeffScalarVecMul_sub (laws : Laws ops) {k} (c : ring.Poly)
   simp only [coeffScalarVecMul, unhatVec, scalarVecMul, hatVec,
              Vector.getElem_map, Vector.getElem_sub]
   rw[laws.toHat_sub u[i] v[i], laws.mul_sub, fromHat_subHat ops laws]
+
+theorem coeffScalarVecMul_add (laws : Laws ops) {k} (c : ring.Poly)
+    (u v : PolyVec ring.Poly k) :
+    ops.coeffScalarVecMul c (u + v) =
+        ops.coeffScalarVecMul c u + ops.coeffScalarVecMul c v := by
+  refine Vector.ext fun i hi => ?_
+  simp only [coeffScalarVecMul, unhatVec, scalarVecMul, hatVec,
+             Vector.getElem_map, Vector.getElem_add]
+  rw [laws.toHat_add u[i] v[i], laws.mul_add, fromHat_addHat ops laws]
 
 private theorem subHat_self (laws : Laws ops) (a : Hat) :
     ops.subHat a a = ops.zeroHat := by
