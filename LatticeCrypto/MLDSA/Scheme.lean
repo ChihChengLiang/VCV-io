@@ -194,6 +194,7 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
       computeWApprox p prims (prims.expandA pk.rho) c (y + c • sk.s1) pk.t1 =
       (prims.expandA pk.rho) * y - c • sk.s2 + c • sk.t0 := by
   intro c y
+  haveI := h_laws.transform
   set aHat := prims.expandA pk.rho
   simp only [computeWApprox]
   have h_kg : aHat * sk.s1 + sk.s2 = prims.power2RoundShiftVec pk.t1 + sk.t0 := by
@@ -241,7 +242,7 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
       ((nttOps.matVecMul aHat (nttOps.hatVec y)) +
         (nttOps.matVecMul aHat (nttOps.hatVec (c • sk.s1)))) -
       (nttOps.scalarVecMul (toHat c) (nttOps.hatVec (prims.power2RoundShiftVec pk.t1)))) := by
-        rw[nttOps.hatVec_add h_laws.transform, nttOps.matVecMul_add h_laws.transform]
+        rw[nttOps.hatVec_add, nttOps.matVecMul_add]
   -- = NTT⁻¹( Â·NTT(y) + NTT(c)·Â·NTT(s₁) − NTT(c)·NTT(t₁·2^d) )
   _ = nttOps.unhatVec (
         ((nttOps.matVecMul aHat (nttOps.hatVec y)) +
@@ -263,7 +264,7 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
             Vector.map (mulHat coeffRing (toHat c)) (Vector.map toHat sk.s1) from by
             apply Vector.ext; intro j hj
             simp only [Vector.getElem_map, h_laws.transform.toHat_fromHat]]
-        exact nttOps.dot_scalar_right h_laws.transform (toHat c) _ _
+        exact nttOps.dot_scalar_right (toHat c) _ _
   -- = NTT⁻¹(Â·NTT(y)) + c·(t₀ - s₂)
   _ = nttOps.unhatVec (nttOps.matVecMul aHat (nttOps.hatVec y)) + c • (sk.t0 - sk.s2) := by
         rw [h1]
@@ -284,12 +285,12 @@ theorem keyGenFromSeed_wApprox_eq {pk : PublicKey p prims} {sk : SecretKey p}
             h_laws.transform.mul_sub (nttOps.toHat c),
             h_laws.transform.mul_add (nttOps.toHat c),
             h_laws.transform.mul_sub (nttOps.toHat c)]
-        simp only [nttOps.fromHat_subHat h_laws.transform, nttOps.fromHat_addHat h_laws.transform]
+        simp only [nttOps.fromHat_subHat, nttOps.fromHat_addHat]
         abel
   _ = aHat * y - c • sk.s2 + c • sk.t0 := by
     simp only [unhatVec, hatVec, HMul.hMul, coeffMatVecMul]
     rw [show c • (sk.t0 - sk.s2) = c • sk.t0 - c • sk.s2 from
-      nttOps.coeffScalarVecMul_sub h_laws.transform c sk.t0 sk.s2]
+      nttOps.coeffScalarVecMul_sub c sk.t0 sk.s2]
     refine Vector.ext fun i hi => ?_
     simp only [Vector.getElem_add, Vector.getElem_sub]
     abel
